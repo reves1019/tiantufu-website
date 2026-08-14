@@ -1,0 +1,589 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #07090d;
+  --color-ink-900: #0b0f14;
+  --color-ink-800: #10161f;
+  --color-ink-700: #1a222e;
+
+  --color-brand-400: #e04747;
+  --color-brand-500: #c71b1b;
+  --color-brand-600: #a81414;
+
+  --color-gold-300: #d9b878;
+  --color-gold-400: #c9a15a;
+
+  --color-parchment-100: #e8e3d8;
+  --color-parchment-300: #c7c0b1;
+  --color-parchment-500: #8f887a;
+
+  --font-display: "Noto Serif SC", "Playfair Display", "STSong", "SimSun", serif;
+  --font-serif-en: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-kai: "KaiTi", "STKaiti", "Kaiti SC", serif;
+  --font-body: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ink-950);
+  color: var(--color-parchment-100);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(199, 27, 27, 0.45);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 3px;
+}
+
+/* ---------- 页面叠层切换 ---------- */
+
+.page-enter {
+  animation: page-enter 0.5s cubic-bezier(0.42, 0, 0.58, 1) 0.2s both;
+}
+
+.page-leave {
+  animation: page-leave 0.7s cubic-bezier(0.42, 0, 0.58, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(64px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+}
+
+/* ---------- 复古未来质感 ---------- */
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+.neon-card {
+  border-color: rgba(255, 143, 163, 0.28);
+  box-shadow:
+    0 0 24px rgba(255, 143, 163, 0.1),
+    inset 0 0 18px rgba(255, 143, 163, 0.04);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.neon-card:hover {
+  border-color: rgba(255, 143, 163, 0.55);
+  box-shadow:
+    0 0 34px rgba(255, 143, 163, 0.22),
+    inset 0 0 22px rgba(255, 143, 163, 0.08);
+}
+
+/* ---------- 长页滚动显现（获奖设计常见的“动效节奏”） ---------- */
+
+[data-scroll-root] [data-reveal],
+[data-scroll-root] .scene-block {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+[data-scroll-root] [data-reveal].is-visible,
+[data-scroll-root] .scene-block.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- 3D 倾斜卡片（TiltCard） ---------- */
+
+.tilt-card {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.tilt-glare {
+  background: radial-gradient(
+    circle at var(--tilt-x, 50%) var(--tilt-y, 50%),
+    rgba(255, 255, 255, 0.08),
+    transparent 45%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.tilt-card:hover .tilt-glare {
+  opacity: 1;
+}
+
+/* ---------- 按钮流光扫过（主要 CTA） ---------- */
+
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -120%;
+  width: 60%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.btn-sheen:hover::after {
+  left: 130%;
+}
+
+/* ---------- 入场动画 ---------- */
+
+.anim {
+  animation-fill-mode: both;
+}
+
+.anim-fade-up {
+  animation-name: fade-up;
+  animation-duration: 0.8s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-fade-down {
+  animation-name: fade-down;
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.anim-fade-in {
+  animation-name: fade-in;
+  animation-duration: 1s;
+  animation-timing-function: ease;
+}
+
+.anim-scale-in {
+  animation-name: scale-in;
+  animation-duration: 1s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.curtain {
+  animation: curtain-up 1s cubic-bezier(0.83, 0, 0.17, 1) 0.15s both;
+}
+
+/* ---------- 背景动效 ---------- */
+
+.grid-drift {
+  animation: grid-drift 16s linear infinite;
+}
+
+.ring-drift {
+  animation: ring-drift 18s ease-in-out infinite;
+}
+
+.compass-spin {
+  animation: compass-spin 120s linear infinite;
+}
+
+.particle {
+  animation-name: particle-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.map-pan-left {
+  animation-name: map-pan-left;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.map-pan-right {
+  animation-name: map-pan-right;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.planet-arc-flow {
+  stroke-dasharray: 3 10;
+  animation: arc-flow 26s linear infinite;
+}
+
+.orbit-rotate-slow {
+  animation: compass-spin 90s linear infinite;
+  transform-origin: center;
+}
+
+.orbit-rotate-reverse {
+  animation: spin-reverse 120s linear infinite;
+  transform-origin: center;
+}
+
+.planet-ambient {
+  animation: planet-ambient 7s ease-in-out infinite;
+}
+
+.globe-rotate {
+  animation: globe-rotate 60s linear infinite;
+}
+
+.spotlight-in {
+  animation-name: spotlight-in;
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.trail-img {
+  animation: trail-fade 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.intro-ball {
+  animation: intro-breathe 3.2s ease-in-out infinite;
+}
+
+/* ---------- 自定义横向滑动条（年鉴） ---------- */
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.annals-fill {
+  background: linear-gradient(90deg, var(--color-brand-600), var(--color-brand-400));
+  box-shadow: 0 0 8px rgba(199, 27, 27, 0.55);
+}
+
+.annals-thumb {
+  background: var(--color-brand-400);
+  box-shadow: 0 0 10px rgba(199, 27, 27, 0.9);
+}
+
+/* ---------- 序章准星发光圆点 ---------- */
+
+.intro-dot-glow {
+  animation: intro-dot-pulse 2.6s ease-in-out infinite;
+}
+
+.intro-dot-ring-spin {
+  animation: intro-dot-spin 24s linear infinite;
+}
+
+.intro-dot-core {
+  background: radial-gradient(circle, #ffffff 0%, #ffffff 42%, rgba(255, 255, 255, 0) 74%);
+}
+
+.intro-map-zoom {
+  animation-name: intro-map-zoom;
+  animation-duration: 30s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.intro-line {
+  animation-name: intro-line-in;
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes curtain-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-101%);
+  }
+}
+
+@keyframes grid-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-72px);
+  }
+}
+
+@keyframes ring-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(18px, -14px) rotate(2deg);
+  }
+}
+
+@keyframes compass-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes particle-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-28px);
+  }
+}
+
+@keyframes map-pan-left {
+  from {
+    transform: scale(1.18) translateX(-2.2%) rotateX(2deg);
+  }
+  to {
+    transform: scale(1.42) translateX(2.2%) rotateX(7deg);
+  }
+}
+
+@keyframes map-pan-right {
+  from {
+    transform: scale(1.42) translateX(2.2%) rotateX(7deg);
+  }
+  to {
+    transform: scale(1.18) translateX(-2.2%) rotateX(2deg);
+  }
+}
+
+@keyframes arc-flow {
+  to {
+    stroke-dashoffset: -260;
+  }
+}
+
+@keyframes spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes planet-ambient {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes globe-rotate {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spotlight-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes trail-fade {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) translateY(8px);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.22) translateY(-26px);
+  }
+}
+
+@keyframes intro-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes intro-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes intro-dot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes intro-map-zoom {
+  from {
+    transform: scale(1.12) translate(0, 0);
+  }
+  to {
+    transform: scale(1.28) translate(-1.5%, 1.5%);
+  }
+}
+
+@keyframes intro-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- 减少动态偏好 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .anim,
+  .anim-fade-up,
+  .anim-fade-down,
+  .anim-fade-in,
+  .anim-scale-in,
+  .curtain,
+  .grid-drift,
+  .ring-drift,
+  .compass-spin,
+  .particle,
+  .map-pan-left,
+  .map-pan-right,
+  .planet-arc-flow,
+  .orbit-rotate-slow,
+  .orbit-rotate-reverse,
+  .planet-ambient,
+  .globe-rotate,
+  .spotlight-in,
+  .trail-img,
+  .intro-ball,
+  .intro-dot-glow,
+  .intro-dot-ring-spin,
+  .intro-map-zoom,
+  .intro-line,
+  .page-enter,
+  .page-leave {
+    animation: none !important;
+  }
+  [data-scroll-root] [data-reveal],
+  [data-scroll-root] .scene-block {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .btn-sheen::after {
+    transition: none;
+  }
+  .curtain {
+    display: none;
+  }
+}
