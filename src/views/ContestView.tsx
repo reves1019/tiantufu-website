@@ -21,7 +21,7 @@ export default function ContestView() {
               as="h1"
               value={contest.title}
               path="contest.title"
-              className="mt-3 w-full font-display text-4xl tracking-[0.1em] text-parchment-100 lg:text-6xl"
+              className="mt-3 w-full font-display text-3xl tracking-[0.1em] text-parchment-100 sm:text-4xl lg:text-6xl"
             />
             <EditableText
               as="p"

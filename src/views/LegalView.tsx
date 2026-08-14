@@ -18,7 +18,7 @@ export default function LegalView() {
               as="h1"
               value={legal.title}
               path="legal.title"
-              className="mt-3 w-full font-display text-5xl tracking-[0.12em] text-parchment-100 lg:text-6xl"
+              className="mt-3 w-full font-display text-4xl tracking-[0.12em] text-parchment-100 sm:text-5xl lg:text-6xl"
             />
             <EditableText
               as="p"

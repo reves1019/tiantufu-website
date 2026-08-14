@@ -16,10 +16,10 @@ export default function ContactView() {
   ]
 
   return (
-    <section id="contact" className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden">
-      <div className="relative z-10 mx-auto max-w-[1700px] px-6 text-center">
+    <section id="contact" data-scroll-root className="relative h-full w-full overflow-y-auto">
+      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1700px] flex-col items-center justify-center px-6 py-24 text-center">
         <p className="font-mono text-xs tracking-[0.5em] text-brand-400">CONTACT · 联系天图府</p>
-        <h1 className="scene-block mt-5 font-display text-6xl tracking-[0.18em] text-parchment-100 lg:text-8xl">联系天图府</h1>
+        <h1 className="scene-block mt-5 font-display text-5xl tracking-[0.18em] text-parchment-100 sm:text-6xl lg:text-8xl">联系天图府</h1>
 
         <div className="scene-block mt-12 flex flex-wrap items-stretch justify-center gap-6">
           <a

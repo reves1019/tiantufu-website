@@ -23,7 +23,7 @@ export default function EarthView() {
 
   return (
     <section id="earth" className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden">
-      <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-center gap-10 px-8 py-12 lg:grid-cols-[1fr_1.2fr] lg:px-12">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-center gap-10 px-8 pb-12 pt-24 lg:grid-cols-[1fr_1.2fr] lg:px-12">
         {/* 左侧文案 */}
         <div>
           <p className="font-mono text-xs tracking-[0.5em] text-brand-400">{earth.title} · 关键词索引</p>

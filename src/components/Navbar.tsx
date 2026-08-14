@@ -48,7 +48,7 @@ export default function Navbar() {
           <img src={brandAssets.wordmark} alt="天图府" className="h-9 w-auto object-contain" />
         </button>
 
-        <ul className="hidden items-center gap-10 md:flex">
+        <ul className="hidden items-center gap-6 md:flex lg:gap-10">
           {site.nav.map((item, i) => {
             const isActive = item.href === `#${active}`
             return (

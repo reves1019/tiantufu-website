@@ -56,7 +56,7 @@ export default function AboutView() {
       data-scroll-root
       className="relative h-full w-full overflow-y-auto"
     >
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 py-12 lg:px-12">
+      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
         <div className="scene-block flex items-baseline gap-4">
           <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 02 · 社团介绍 · {site.nameEn}</p>
           <span className="h-px w-16 bg-white/15" />
@@ -65,7 +65,7 @@ export default function AboutView() {
           as="h2"
           value={about.introTitle}
           path="about.introTitle"
-          className="scene-block mt-3 font-display text-5xl tracking-[0.12em] text-parchment-100 lg:text-6xl"
+          className="scene-block mt-3 font-display text-4xl tracking-[0.12em] text-parchment-100 sm:text-5xl lg:text-6xl"
         />
 
         {/* 社团简介 */}
