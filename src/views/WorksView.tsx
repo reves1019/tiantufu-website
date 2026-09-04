@@ -208,7 +208,11 @@ export default function WorksView() {
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <FilterChip active={archiveTopic === null} onClick={() => selectArchiveTopic(null)} label="全部主题" />
+            <FilterChip
+              active={archiveTopic === null}
+              onClick={() => selectArchiveTopic(null)}
+              label={content.ui.works.allTopics}
+            />
             {topics.map((topic) => (
               <FilterChip
                 key={topic.id}
@@ -219,7 +223,11 @@ export default function WorksView() {
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <FilterChip active={archiveCategory === null} onClick={() => selectArchiveCategory(null)} label="全部类型" />
+            <FilterChip
+              active={archiveCategory === null}
+              onClick={() => selectArchiveCategory(null)}
+              label={content.ui.works.allTypes}
+            />
             {content.worksCategories.map((category) => (
               <FilterChip
                 key={category}

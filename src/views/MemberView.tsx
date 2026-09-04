@@ -98,15 +98,13 @@ export default function MemberView() {
             onClick={() => requestScene(WORKS_INDEX)}
             className="mt-10 inline-flex items-center gap-3 rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.22em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
           >
-            ← 返回作品集
+            {content.ui.member.backWorks}
           </button>
         </div>
 
         {/* 右列：代表作 */}
         <div className="scene-block">
-          <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">
-            REPRESENTATIVE WORK · 代表作
-          </p>
+          <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">{content.ui.member.representative}</p>
 
           <div className="relative mt-6 overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 shadow-[0_0_44px_rgba(199,27,27,0.18)]">
             {/* 古地图边框装饰 */}
@@ -164,7 +162,9 @@ export default function MemberView() {
                         className="aspect-[4/3] w-full bg-ink-900 object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-1 pt-4 font-mono text-[9px] tracking-[0.1em] text-parchment-200">
-                        {i === 0 ? '代表作' : `延伸 ${String(i).padStart(2, '0')}`}
+                        {i === 0
+                          ? content.ui.member.featured
+                          : `${content.ui.member.extensionPrefix} ${String(i).padStart(2, '0')}`}
                       </span>
                     </button>
                   </TiltCard>

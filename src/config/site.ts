@@ -227,6 +227,8 @@ export const uiText = {
     archiveTitle: '作品档案',
     archiveNote: '按创作主题与作品分类归档的全站作品库',
     filterAll: '全部',
+    allTopics: '全部主题',
+    allTypes: '全部类型',
     authorLabel: '作者',
     expand: '展开更多作品 ↓',
     collapse: '收起 ↑',
@@ -251,6 +253,26 @@ export const uiText = {
     faqCardDesc: '加入 / 约稿 / 版权',
     legalCard: '版权声明',
     legalCardDesc: '授权与免责说明',
+  },
+  news: {
+    title: '新闻动态',
+    subtitle: '近期社团动态与公告（占位内容，后续替换）',
+    contestCta: '天图府·单图制图大赛 →',
+    backAbout: '← 返回社团介绍',
+    empty: '该分类暂无新闻（占位提示）',
+    expand: '展开更多动态 ↓',
+    detailHint: '详情 →',
+  },
+  culture: {
+    title: '社团文化',
+    subtitle: '文化理念与活动（占位内容，后续替换）',
+    backAbout: '← 返回社团介绍',
+  },
+  member: {
+    backWorks: '← 返回作品集',
+    representative: 'REPRESENTATIVE WORK · 代表作',
+    extensionPrefix: '延伸',
+    featured: '代表作',
   },
 }
 
