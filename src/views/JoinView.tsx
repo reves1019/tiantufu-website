@@ -85,6 +85,15 @@ export default function JoinView() {
         {/* 申请入口 */}
         <div className="scene-block mt-10 flex flex-wrap items-center gap-6 rounded-xl border border-brand-500/30 bg-ink-950/60 p-6 backdrop-blur-sm">
           <Magnetic>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('ttf-gate-register'))}
+              className="btn-sheen rounded-md border border-brand-500/60 bg-brand-500/10 px-8 py-3.5 text-sm tracking-[0.2em] text-brand-400 transition-all duration-300 hover:bg-brand-500 hover:text-white"
+            >
+              注册成员账号
+            </button>
+          </Magnetic>
+          <Magnetic>
             <a
               href={`tencent://group/pa?cmd=2&uin=${qqGroup}`}
               className="btn-sheen rounded-md bg-brand-500 px-8 py-3.5 text-sm tracking-[0.2em] text-white shadow-[0_0_28px_rgba(199,27,27,0.4)] transition-all duration-300 hover:bg-brand-600"
@@ -93,6 +102,9 @@ export default function JoinView() {
             </a>
           </Magnetic>
           <EditableText as="p" multiline value={join.contactNote} path="join.contactNote" className="max-w-xl text-sm leading-relaxed text-parchment-400" />
+          <p className="w-full font-mono text-[10px] tracking-[0.15em] text-parchment-500">
+            注册后由管理员审核，通过后自动生成你的个人主页与作品集。
+          </p>
         </div>
       </div>
     </section>

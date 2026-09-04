@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { brandAssets, site } from '../config/site'
 import Magnetic from './Magnetic'
 import { requestScene } from '../lib/sceneBus'
+import { useContent } from '../lib/contentStore'
 
 const SECTION_IDS = site.nav.map((item) => item.href.slice(1))
 
 export default function Navbar() {
+  const { openGate, account } = useContent()
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState('home')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -85,11 +87,28 @@ export default function Navbar() {
               <polyline points="16 16 21 21" />
             </svg>
           </button>
+          {/* 账号：登录 / 注册 / 查看当前账号 */}
+          <button
+            type="button"
+            onClick={openGate}
+            title={account ? `已登录：${account.displayName}` : '登录 / 注册成员账号'}
+            aria-label="登录或注册账号"
+            className={`flex h-10 w-10 items-center justify-center rounded-md border transition-colors duration-300 ${
+              account
+                ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'
+                : 'border-white/15 text-parchment-300 hover:border-brand-500/60 hover:text-brand-400'
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+            </svg>
+          </button>
           <Magnetic>
             <button
               type="button"
               onClick={() => requestScene(site.nav.length - 1)}
-              className="btn-sheen hidden rounded-md bg-brand-500 px-5 py-2.5 text-sm tracking-[0.15em] text-white shadow-[0_0_24px_rgba(255,143,163,0.35)] transition-all duration-300 hover:bg-brand-600 hover:shadow-[0_0_36px_rgba(255,143,163,0.55)] sm:inline-block"
+              className="btn-sheen hidden rounded-md bg-brand-500 px-5 py-2.5 text-sm tracking-[0.15em] text-white shadow-[0_0_24px_rgba(255,143,163,0.35)] transition-all duration-300 hover:bg-brand-600 hover:shadow-[0_0_36px_rgba(255,143,163,0.55)] lg:inline-block"
             >
               联系我们
             </button>

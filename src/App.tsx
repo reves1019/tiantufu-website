@@ -10,6 +10,8 @@ import ShortcutOverlay from './components/ShortcutOverlay'
 import AdminGate from './components/admin/AdminGate'
 import AdminToolbar from './components/admin/AdminToolbar'
 import ContentManager from './components/admin/ContentManager'
+import AccountManager from './components/admin/AccountManager'
+import MemberToolbar from './components/admin/MemberToolbar'
 import { ContentProvider, useContent } from './lib/contentStore'
 import AboutView from './views/AboutView'
 import ContactView from './views/ContactView'
@@ -112,8 +114,12 @@ function AppShell() {
       <SearchOverlay />
       <AdminGate />
       <AdminToolbar />
+      {/* 成员登录后的资料编辑工具栏 */}
+      <MemberToolbar />
       {/* 管理员内容管理（成员/作品/新闻/文化/年鉴/FAQ/主题/分类/约稿） */}
       <ContentManager />
+      {/* 管理员账号管理（审核成员注册/重置密码/导入导出） */}
+      <AccountManager />
     </>
   )
 }

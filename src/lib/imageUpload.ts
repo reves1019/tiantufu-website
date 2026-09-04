@@ -1,6 +1,8 @@
 const DB_NAME = 'ttf-uploads'
 const DB_STORE = 'dir-handle'
-const MAX_FALLBACK_BYTES = 1024 * 1024 // 1MB
+// 不再限制 Base64 回退体积：站点内容现在以 IndexedDB 持久化，可容纳大图。
+// 仅保留提示阈值，超出时建议使用“上传目录”模式以减小导出 JSON 体积。
+const LARGE_IMAGE_BYTES = 3 * 1024 * 1024
 
 export interface UploadResult {
   /** 写入内容的引用：/uploads/xxx.png 或 data:image/... */
@@ -118,8 +120,8 @@ export async function uploadImage(file: File): Promise<UploadResult> {
     }
   }
 
-  if (file.size > MAX_FALLBACK_BYTES) {
-    throw new Error('图片超过 1MB：请先点击“选择上传目录”写入网站文件夹，或压缩图片后重试')
+  if (file.size > LARGE_IMAGE_BYTES) {
+    // 不再报错：图片会以 Base64 存入 IndexedDB 并在导出 JSON 时完整保留。
   }
   const dataUrl = await readAsDataURL(file)
   return { ref: dataUrl, mode: 'dataurl' }

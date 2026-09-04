@@ -1,17 +1,17 @@
 import { useState } from 'react'
-import { changeCredentials } from '../../lib/authStore'
+import { useContent } from '../../lib/contentStore'
 
 interface CredentialsModalProps {
   open: boolean
   onClose: () => void
 }
 
-/** 修改登录信息：需要旧用户名/密码验证，可同时更换用户名与密码 */
+/** 修改当前账号密码：验证旧密码后设置新密码 */
 export default function CredentialsModal({ open, onClose }: CredentialsModalProps) {
-  const [oldUsername, setOldUsername] = useState('')
+  const { changeMyPassword, account } = useContent()
   const [oldPassword, setOldPassword] = useState('')
-  const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -22,9 +22,16 @@ export default function CredentialsModal({ open, onClose }: CredentialsModalProp
     setBusy(true)
     setError('')
     try {
-      const result = await changeCredentials(oldUsername, oldPassword, newUsername, newPassword)
+      if (newPassword !== confirm) {
+        setError('两次输入的新密码不一致')
+        return
+      }
+      const result = await changeMyPassword(oldPassword, newPassword)
       if (result.ok) {
-        window.alert('登录信息已更新，请使用新账号重新登录')
+        window.alert('密码已更新，下次登录请使用新密码')
+        setOldPassword('')
+        setNewPassword('')
+        setConfirm('')
         onClose()
       } else {
         setError(result.error ?? '修改失败')
@@ -43,7 +50,7 @@ export default function CredentialsModal({ open, onClose }: CredentialsModalProp
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="修改登录信息"
+      aria-label="修改密码"
     >
       <form
         onClick={(event) => event.stopPropagation()}
@@ -53,23 +60,40 @@ export default function CredentialsModal({ open, onClose }: CredentialsModalProp
         }}
         className="w-[min(420px,92vw)] rounded-xl border border-brand-500/30 bg-ink-900/95 p-6 shadow-[0_0_44px_rgba(199,27,27,0.25)]"
       >
-        <p className="font-mono text-xs tracking-[0.4em] text-brand-400">修改登录信息</p>
+        <p className="font-mono text-xs tracking-[0.4em] text-brand-400">修改密码</p>
+        <p className="mt-1 font-mono text-[10px] tracking-[0.2em] text-parchment-500">
+          当前账号：@{account?.username ?? ''}（{account?.displayName ?? ''}）
+        </p>
         <div className="mt-4 grid gap-3">
           <label className="block">
-            <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">旧用户名</span>
-            <input value={oldUsername} onChange={(event) => setOldUsername(event.target.value)} className={inputCls} placeholder="当前用户名" />
-          </label>
-          <label className="block">
             <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">旧密码</span>
-            <input type="password" value={oldPassword} onChange={(event) => setOldPassword(event.target.value)} className={inputCls} placeholder="当前密码" />
-          </label>
-          <label className="block">
-            <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">新用户名</span>
-            <input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} className={inputCls} placeholder="新的用户名" />
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(event) => setOldPassword(event.target.value)}
+              className={inputCls}
+              placeholder="当前密码"
+            />
           </label>
           <label className="block">
             <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">新密码（至少 4 位）</span>
-            <input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className={inputCls} placeholder="新的密码" />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className={inputCls}
+              placeholder="新的密码"
+            />
+          </label>
+          <label className="block">
+            <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">再次输入新密码</span>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(event) => setConfirm(event.target.value)}
+              className={inputCls}
+              placeholder="确认新密码"
+            />
           </label>
         </div>
         {error && <p className="mt-3 font-mono text-xs text-brand-400">{error}</p>}

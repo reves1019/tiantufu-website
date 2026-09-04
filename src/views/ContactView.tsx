@@ -103,9 +103,9 @@ export default function ContactView() {
               type="button"
               onClick={openGate}
               className="font-mono text-[10px] tracking-[0.3em] text-parchment-500/50 transition-colors hover:text-brand-400"
-              title="管理员编辑模式（快捷键 Ctrl+Shift+A）"
+              title="登录 / 注册成员账号（快捷键 Ctrl+Shift+A）"
             >
-              管理
+              登录 / 注册
             </button>
           </div>
           <p className="font-mono text-[10px] tracking-[0.25em] text-parchment-500/60">

@@ -92,6 +92,7 @@ const TABS = [
   { id: 'faq', label: 'FAQ' },
   { id: 'topics', label: '创作主题' },
   { id: 'categories', label: '作品分类' },
+  { id: 'contest', label: '赛事' },
   { id: 'commission', label: '约稿价格' },
 ] as const
 
@@ -701,6 +702,92 @@ export default function ContentManager() {
                       <TextField label="价格" value={row.price} onChange={(v) => setAt(`commission.priceTable.${i}.price`, v)} />
                       <TextField label="范围" value={row.scope} onChange={(v) => setAt(`commission.priceTable.${i}.scope`, v)} />
                       <TextField label="工期" value={row.leadTime} onChange={(v) => setAt(`commission.priceTable.${i}.leadTime`, v)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 赛事（含往届优秀作品图片上传） */}
+          {tab === 'contest' && (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-xs tracking-[0.35em] text-brand-400">CONTEST · 单图制图大赛</p>
+              </div>
+              <div className="mt-4 grid gap-3">
+                <TextField label="赛事标题" value={content.contest.title} onChange={(v) => setAt('contest.title', v)} />
+                <TextField label="副标题" value={content.contest.subtitle} onChange={(v) => setAt('contest.subtitle', v)} />
+                <TextField
+                  label="B 站宣传视频链接"
+                  value={content.contest.videoUrl}
+                  onChange={(v) => setAt('contest.videoUrl', v)}
+                />
+                <TextField label="比赛细则" value={content.contest.rules} textarea onChange={(v) => setAt('contest.rules', v)} />
+              </div>
+
+              <div className="mt-6 flex items-center justify-between gap-3">
+                <p className="font-mono text-xs tracking-[0.35em] text-brand-400">
+                  往届优秀作品（{content.contest.works.length}）
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    addItem('contest.works', content.contest.works, {
+                      edition: content.contest.editions[0]?.edition ?? '第一届',
+                      title: '新赛事作品（占位）',
+                      author: '获奖者（占位）',
+                      image: members[0]?.work.image ?? '',
+                      desc: '作品说明占位',
+                    })
+                  }
+                  className="rounded-md border border-dashed border-brand-500/50 px-4 py-1.5 text-xs tracking-[0.2em] text-brand-400 transition-colors hover:bg-brand-500/10"
+                >
+                  + 新增赛事作品
+                </button>
+              </div>
+              <div className="mt-3 space-y-3">
+                {content.contest.works.map((work, i) => (
+                  <div key={`${work.title}-${i}`} className="rounded-lg border border-white/10 bg-ink-950/60 p-3">
+                    <div className="flex items-center gap-3">
+                      <p className="min-w-0 flex-1 truncate text-sm tracking-[0.12em] text-parchment-100">
+                        {work.edition} · {work.title}
+                      </p>
+                      <RowActions
+                        index={i}
+                        total={content.contest.works.length}
+                        onUp={() => move('contest.works', content.contest.works, i, -1)}
+                        onDown={() => move('contest.works', content.contest.works, i, 1)}
+                        onDelete={() => removeItem('contest.works', content.contest.works, i, `赛事作品「${work.title}」`)}
+                      />
+                    </div>
+                    <div className="mt-3 grid gap-3">
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <label className="block">
+                          <span className="mb-1 block font-mono text-[9px] tracking-[0.25em] text-parchment-500">届次</span>
+                          <select
+                            value={work.edition}
+                            onChange={(event) => setAt(`contest.works.${i}.edition`, event.target.value)}
+                            className={inputCls}
+                          >
+                            {content.contest.editions.map((e) => (
+                              <option key={e.edition} value={e.edition}>
+                                {e.edition}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className="md:col-span-2">
+                          <TextField label="作品名" value={work.title} onChange={(v) => setAt(`contest.works.${i}.title`, v)} />
+                        </div>
+                      </div>
+                      <TextField label="作者" value={work.author} onChange={(v) => setAt(`contest.works.${i}.author`, v)} />
+                      <ImageField
+                        label="作品图片（上传/路径）"
+                        value={work.image}
+                        onChange={(v) => setAt(`contest.works.${i}.image`, v)}
+                      />
+                      <TextField label="作品说明" value={work.desc} textarea onChange={(v) => setAt(`contest.works.${i}.desc`, v)} />
                     </div>
                   </div>
                 ))}
