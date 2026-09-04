@@ -8,22 +8,45 @@ interface WorkArchiveCardProps {
   topicName: string
   canOpen: boolean
   onClick: () => void
+  onZoom?: () => void
 }
 
-/** 作品档案卡片：分类作品库中的单件作品，点击进入作者成员页（作者未收录时禁用） */
-export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, onClick }: WorkArchiveCardProps) {
+/** 作品档案卡片：分类作品库中的单件作品；点击图卡进入作者成员页，点右上角放大查看 */
+export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, onClick, onZoom }: WorkArchiveCardProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!canOpen}
+    <div
+      role={canOpen ? 'button' : undefined}
+      tabIndex={canOpen ? 0 : undefined}
+      onClick={canOpen ? onClick : undefined}
+      onKeyDown={(event) => {
+        if (canOpen && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          onClick()
+        }
+      }}
       className={`group relative block h-full w-full overflow-hidden rounded-lg border border-white/10 bg-ink-950/45 text-left backdrop-blur-sm transition-all duration-300 ${
         canOpen
-          ? 'hover:border-brand-500/50 hover:shadow-[0_0_28px_rgba(199,27,27,0.18)]'
+          ? 'cursor-pointer hover:border-brand-500/50 hover:shadow-[0_0_28px_rgba(199,27,27,0.18)]'
           : 'cursor-default opacity-70'
       }`}
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-ink-900">
+        {onZoom && (
+          <button
+            type="button"
+            aria-label={`放大查看《${work.title}》`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onZoom()
+            }}
+            className="absolute right-3 top-3 z-20 flex h-9 w-9 cursor-zoom-in items-center justify-center rounded-full border border-white/15 bg-ink-950/75 text-parchment-200 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100 hover:border-brand-500/70 hover:text-brand-400"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.35-4.35M8 11h6M11 8v6" />
+            </svg>
+          </button>
+        )}
         <img
           src={work.image}
           alt={work.title}
@@ -69,6 +92,6 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
           className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-parchment-500"
         />
       </div>
-    </button>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ImageTrail from '../components/ImageTrail'
+import Lightbox, { type LightboxImage } from '../components/Lightbox'
 import LetterSwap from '../components/LetterSwap'
 import TiltCard from '../components/TiltCard'
 import EditableText from '../components/admin/EditableText'
@@ -14,6 +15,7 @@ export default function MemberView() {
   const members = content.members
   const [activeId, setActiveId] = useState<string | null>(() => getActiveMemberId())
   const [previewSlot, setPreviewSlot] = useState(-1)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   useEffect(() => {
     const onMember = (event: Event) => {
@@ -29,7 +31,13 @@ export default function MemberView() {
   if (!member) return null
 
   const gallery = [member.work, ...(member.works ?? [])]
+  const galleryImages: LightboxImage[] = gallery.map((work) => ({
+    src: work.image,
+    title: work.title,
+    desc: work.desc,
+  }))
   const preview = previewSlot >= 0 ? (member.works?.[previewSlot] ?? member.work) : member.work
+  const previewIndex = previewSlot >= 0 ? previewSlot + 1 : 0
   const previewTitlePath = previewSlot >= 0 ? `members.${memberIndex}.works.${previewSlot}.title` : `members.${memberIndex}.work.title`
   const previewDescPath = previewSlot >= 0 ? `members.${memberIndex}.works.${previewSlot}.desc` : `members.${memberIndex}.work.desc`
 
@@ -38,12 +46,12 @@ export default function MemberView() {
       {/* 图片鼠标轨迹 */}
       <ImageTrail images={[member.avatar, member.work.image]} />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-center gap-12 px-8 pb-12 pt-24 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
+      <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-start gap-10 px-6 pb-12 pt-24 md:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:px-12">
         {/* 左列：成员信息 */}
-        <div className="scene-block">
+        <div className="scene-block min-w-0">
           <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 07 · MEMBER · 成员个人页</p>
 
-          <div className="relative mt-8 h-44 w-44">
+          <div className="relative mx-auto mt-8 h-44 w-44 md:mx-0">
             <div className="absolute inset-0 rounded-full bg-brand-500/25 blur-2xl" />
             <img
               src={member.avatar}
@@ -57,13 +65,13 @@ export default function MemberView() {
               as="h1"
               value={member.name}
               path={`members.${memberIndex}.name`}
-              className="mt-6 w-full font-display text-5xl tracking-[0.14em] text-parchment-100"
+              className="mt-6 w-full font-display text-4xl tracking-[0.12em] text-parchment-100 sm:text-5xl sm:tracking-[0.14em]"
             />
           ) : (
             <LetterSwap
               as="h1"
               text={member.name}
-              className="mt-6 font-display text-5xl tracking-[0.14em] text-parchment-100"
+              className="mt-6 font-display text-4xl tracking-[0.12em] text-parchment-100 sm:text-5xl sm:tracking-[0.14em]"
             />
           )}
           <EditableText
@@ -103,18 +111,30 @@ export default function MemberView() {
         </div>
 
         {/* 右列：代表作 */}
-        <div className="scene-block">
+        <div className="scene-block min-w-0">
           <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">{content.ui.member.representative}</p>
 
-          <div className="relative mt-6 overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 shadow-[0_0_44px_rgba(199,27,27,0.18)]">
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(previewIndex)}
+            aria-label={`放大查看《${preview.title}》`}
+            className="group relative mt-6 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 text-left shadow-[0_0_44px_rgba(199,27,27,0.18)] transition-colors duration-300 hover:border-brand-500/50"
+          >
             {/* 古地图边框装饰 */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-2 z-10 border border-brand-500/25" />
             <img
               src={preview.image}
               alt={preview.title}
-              className="h-[min(52vh,560px)] w-full object-cover object-center"
+              className="h-[min(52vh,560px)] w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]"
             />
-          </div>
+            <span className="pointer-events-none absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full border border-white/15 bg-ink-950/75 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.2em] text-parchment-200 opacity-0 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.35-4.35M8 11h6M11 8v6" />
+              </svg>
+              {content.ui.member.zoomHint}
+            </span>
+          </button>
 
           {admin ? (
             <EditableText
@@ -140,7 +160,7 @@ export default function MemberView() {
 
           {/* 更多作品：点击切换上方大图预览 */}
           {gallery.length > 1 && (
-            <div className="mt-7 grid grid-cols-3 gap-3">
+            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {gallery.map((work, i) => {
                 const slot = i === 0 ? -1 : i - 1
                 const active = previewSlot === slot
@@ -148,7 +168,10 @@ export default function MemberView() {
                   <TiltCard key={`${work.title}-${i}`} className="h-full" maxTilt={4}>
                     <button
                       type="button"
-                      onClick={() => setPreviewSlot(slot)}
+                      onClick={() => {
+                        setPreviewSlot(slot)
+                        setLightboxIndex(i)
+                      }}
                       className={`group relative block h-full w-full overflow-hidden rounded-md border text-left transition-all duration-300 ${
                         active
                           ? 'border-brand-500/70 shadow-[0_0_18px_rgba(199,27,27,0.35)]'
@@ -174,6 +197,15 @@ export default function MemberView() {
           )}
         </div>
       </div>
+      {/* 图片放大查看 */}
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={galleryImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
     </section>
   )
 }

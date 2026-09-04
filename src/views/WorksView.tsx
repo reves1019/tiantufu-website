@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import ImageTrail from '../components/ImageTrail'
+import Lightbox from '../components/Lightbox'
 import LetterSwap from '../components/LetterSwap'
 import WorkArchiveCard from '../components/WorkArchiveCard'
 import WorkFolderCard from '../components/WorkFolderCard'
@@ -38,6 +39,7 @@ export default function WorksView() {
   const [archiveCategory, setArchiveCategory] = useState<string | null>(null)
   const [archiveAuthor, setArchiveAuthor] = useState<string | null>(null)
   const [archiveCount, setArchiveCount] = useState(6)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const filtered = useMemo(
     () =>
@@ -74,6 +76,11 @@ export default function WorksView() {
     [archiveAll, archiveTopic, archiveCategory, archiveAuthor],
   )
   const archiveShown = archiveFiltered.slice(0, archiveCount)
+  const archiveImages = archiveFiltered.map(({ work }) => ({
+    src: work.image,
+    title: work.title,
+    desc: `${work.author} · ${work.desc}`,
+  }))
 
   const selectArchiveTopic = (id: string | null) => {
     setArchiveTopic(id)
@@ -264,6 +271,7 @@ export default function WorksView() {
                   workIndex={index}
                   topicName={topicName}
                   canOpen={!!member}
+                  onZoom={() => setLightboxIndex(index)}
                   onClick={() => {
                     if (member) {
                       setActiveMemberId(member.id)
@@ -293,6 +301,15 @@ export default function WorksView() {
           )}
         </div>
       </div>
+      {/* 作品档案大图查看 */}
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={archiveImages}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
     </section>
   )
 }

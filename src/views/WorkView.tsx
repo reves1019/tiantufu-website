@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import EditableText from '../components/admin/EditableText'
+import Lightbox from '../components/Lightbox'
 import { useContent } from '../lib/contentStore'
 import { EARTH_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
@@ -9,6 +10,7 @@ export default function WorkView() {
   const { content } = useContent()
   const members = content.members
   const [index] = useState(() => (members.length > 0 ? Math.floor(Math.random() * members.length) : -1))
+  const [zoom, setZoom] = useState(false)
   const member = index >= 0 ? members[index] : undefined
 
   if (!member) return null
@@ -58,14 +60,22 @@ export default function WorkView() {
         {/* 随机作品 */}
         <div className="scene-block">
           <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">WORK · 随机作品</p>
-          <div className="relative mt-6 overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 shadow-[0_0_44px_rgba(199,27,27,0.18)]">
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            aria-label={`放大查看《${member.work.title}》`}
+            className="group relative mt-6 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 text-left shadow-[0_0_44px_rgba(199,27,27,0.18)] transition-colors duration-300 hover:border-brand-500/50"
+          >
             <div aria-hidden="true" className="pointer-events-none absolute inset-2 z-10 border border-brand-500/25" />
             <img
               src={member.work.image}
               alt={member.work.title}
-              className="h-[min(52vh,560px)] w-full object-cover object-center"
+              className="h-[min(52vh,560px)] w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]"
             />
-          </div>
+            <span className="pointer-events-none absolute bottom-4 right-4 z-20 rounded-full border border-white/15 bg-ink-950/75 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.2em] text-parchment-200 opacity-0 backdrop-blur-md transition-opacity duration-300 group-hover:opacity-100">
+              {content.ui.member.zoomHint}
+            </span>
+          </button>
           <EditableText
             as="h2"
             value={member.work.title}
@@ -81,6 +91,13 @@ export default function WorkView() {
           />
         </div>
       </div>
+      {zoom && (
+        <Lightbox
+          images={[{ src: member.work.image, title: member.work.title, desc: member.work.desc }]}
+          index={0}
+          onClose={() => setZoom(false)}
+        />
+      )}
     </section>
   )
 }

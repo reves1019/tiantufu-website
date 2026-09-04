@@ -273,6 +273,7 @@ export const uiText = {
     representative: 'REPRESENTATIVE WORK · 代表作',
     extensionPrefix: '延伸',
     featured: '代表作',
+    zoomHint: '点击放大',
   },
 }
 
