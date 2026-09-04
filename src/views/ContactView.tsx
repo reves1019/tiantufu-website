@@ -9,17 +9,22 @@ export default function ContactView() {
   const contact = content.site.contact
 
   const entries = [
-    { label: '加入我们', desc: '成为天图府的一员', index: JOIN_INDEX },
-    { label: '约稿服务', desc: '承接架空地图与设定绘制', index: COMMISSION_INDEX },
-    { label: '常见问题', desc: '加入 / 约稿 / 版权', index: FAQ_INDEX },
-    { label: '版权声明', desc: '授权与免责说明', index: LEGAL_INDEX },
+    { label: content.ui.contact.joinCard, desc: content.ui.contact.joinCardDesc, index: JOIN_INDEX },
+    { label: content.ui.contact.commissionCard, desc: content.ui.contact.commissionCardDesc, index: COMMISSION_INDEX },
+    { label: content.ui.contact.faqCard, desc: content.ui.contact.faqCardDesc, index: FAQ_INDEX },
+    { label: content.ui.contact.legalCard, desc: content.ui.contact.legalCardDesc, index: LEGAL_INDEX },
   ]
 
   return (
     <section id="contact" data-scroll-root className="relative h-full w-full overflow-y-auto">
       <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1700px] flex-col items-center justify-center px-6 py-24 text-center">
-        <p className="font-mono text-xs tracking-[0.5em] text-brand-400">CONTACT · 联系天图府</p>
-        <h1 className="scene-block mt-5 font-display text-5xl tracking-[0.18em] text-parchment-100 sm:text-6xl lg:text-8xl">联系天图府</h1>
+        <p className="font-mono text-xs tracking-[0.5em] text-brand-400">{content.ui.contact.kicker}</p>
+        <EditableText
+          as="h1"
+          value={content.ui.contact.title}
+          path="ui.contact.title"
+          className="scene-block mt-5 w-full font-display text-5xl tracking-[0.18em] text-parchment-100 sm:text-6xl lg:text-8xl"
+        />
 
         <div className="scene-block mt-12 flex flex-wrap items-stretch justify-center gap-6">
           <a
@@ -27,9 +32,9 @@ export default function ContactView() {
             title={`QQ 号：${contact.qq}`}
             className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
           >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">QQ</span>
+            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.qqLabel}</span>
             <EditableText as="span" value={contact.qq} path="site.contact.qq" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value="占位号码 · 待替换" path="site.contact.qqNote" className="mt-2 block w-full text-xs text-parchment-500" />
+            <EditableText as="span" value={content.ui.contact.qqNote} path="ui.contact.qqNote" className="mt-2 block w-full text-xs text-parchment-500" />
           </a>
           <a
             href={contact.bilibili}
@@ -37,26 +42,26 @@ export default function ContactView() {
             rel="noreferrer"
             className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
           >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">BILIBILI</span>
+            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.biliLabel}</span>
             <EditableText as="span" value={contact.bilibili} path="site.contact.bilibili" className="mt-4 block w-full break-all text-sm tracking-[0.1em] text-parchment-100" />
-            <EditableText as="span" value="占位链接 · 待替换" path="site.contact.biliNote" className="mt-2 block w-full text-xs text-parchment-500" />
+            <EditableText as="span" value={content.ui.contact.biliNote} path="ui.contact.biliNote" className="mt-2 block w-full text-xs text-parchment-500" />
           </a>
           <a
             href={`mailto:${contact.email}`}
             className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
           >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">EMAIL</span>
+            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.emailLabel}</span>
             <EditableText as="span" value={contact.email} path="site.contact.email" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value="占位邮箱 · 待确认" path="site.contact.emailNote" className="mt-2 block w-full text-xs text-parchment-500" />
+            <EditableText as="span" value={content.ui.contact.emailNote} path="ui.contact.emailNote" className="mt-2 block w-full text-xs text-parchment-500" />
           </a>
           <a
             href={`tencent://group/pa?cmd=2&uin=${contact.qqGroup}`}
             title={`QQ 群号：${contact.qqGroup}`}
             className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
           >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">QQ GROUP</span>
+            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.groupLabel}</span>
             <EditableText as="span" value={contact.qqGroup} path="site.contact.qqGroup" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value="QQ 群号 · 待替换" path="site.contact.qqGroupNote" className="mt-2 block w-full text-xs text-parchment-500" />
+            <EditableText as="span" value={content.ui.contact.groupNote} path="ui.contact.groupNote" className="mt-2 block w-full text-xs text-parchment-500" />
           </a>
         </div>
 

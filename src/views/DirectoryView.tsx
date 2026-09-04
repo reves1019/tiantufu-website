@@ -22,9 +22,13 @@ export default function DirectoryView() {
     <section id="directory" data-scroll-root className="relative h-full w-full overflow-y-auto">
       <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
         <div className="scene-block text-center">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 03 · TOPICS · 创作主题</p>
-          <h1 className="mt-4 font-display text-5xl tracking-[0.14em] text-parchment-100 lg:text-7xl">创作主题</h1>
-          <p className="mt-3 text-sm tracking-[0.2em] text-parchment-400">正史地图 · 半架空 · 全架空</p>
+          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">
+            E 120° · 03 · TOPICS · {content.ui.directory.title}
+          </p>
+          <h1 className="mt-4 font-display text-5xl tracking-[0.14em] text-parchment-100 lg:text-7xl">
+            {content.ui.directory.title}
+          </h1>
+          <p className="mt-3 text-sm tracking-[0.2em] text-parchment-400">{content.ui.directory.subtitle}</p>
         </div>
 
         <div className="scene-block mt-12 grid gap-8 md:grid-cols-3">
@@ -74,7 +78,7 @@ export default function DirectoryView() {
                     </div>
                   )}
                   <span className="mt-3 inline-block font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors group-hover:text-brand-400">
-                    {countFor(topic.id)} 位作者 · 进入 →
+                    {countFor(topic.id)} {content.ui.directory.enterSuffix}
                   </span>
                 </div>
               </button>

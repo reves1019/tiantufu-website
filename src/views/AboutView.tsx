@@ -58,7 +58,9 @@ export default function AboutView() {
     >
       <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
         <div className="scene-block flex items-baseline gap-4">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 02 · 社团介绍 · {site.nameEn}</p>
+          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">
+            E 120° · 02 · {content.ui.about.kicker} · {site.nameEn}
+          </p>
           <span className="h-px w-16 bg-white/15" />
         </div>
         <EditableText
@@ -79,7 +81,7 @@ export default function AboutView() {
 
         {/* 社团宗旨 */}
         <div className="scene-block mt-8 max-w-3xl border-l-2 border-brand-500/60 pl-5">
-          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">社团宗旨</p>
+          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.missionLabel}</p>
           <EditableText
             as="p"
             multiline
@@ -91,7 +93,7 @@ export default function AboutView() {
 
         {/* 社团历史 */}
         <div className="scene-block mt-6 max-w-3xl border-l-2 border-white/15 pl-5">
-          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">社团历史</p>
+          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.historyLabel}</p>
           <EditableText
             as="p"
             multiline
@@ -141,7 +143,7 @@ export default function AboutView() {
         {/* 年鉴（历史大事记，横向滑动 + 自定义进度条） */}
         <div className="scene-block mt-8 max-w-[1300px]">
           <div className="flex items-center justify-between gap-4">
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">年鉴 · 重大事件</p>
+            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.annalsLabel}</p>
             <div className="hidden items-center gap-2 sm:flex">
               <button
                 type="button"
@@ -208,21 +210,21 @@ export default function AboutView() {
             onClick={() => requestScene(NEWS_INDEX)}
             className="rounded-md bg-brand-500 px-7 py-3 text-sm tracking-[0.2em] text-white shadow-[0_0_24px_rgba(199,27,27,0.35)] transition-all duration-300 hover:bg-brand-600"
           >
-            新闻动态 →
+            {content.ui.about.newsCta}
           </button>
           <button
             type="button"
             onClick={() => requestScene(CULTURE_INDEX)}
             className="rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
           >
-            社团文化 →
+            {content.ui.about.cultureCta}
           </button>
           <button
             type="button"
             onClick={() => requestScene(CONTEST_INDEX)}
             className="rounded-md border border-brand-500/40 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10"
           >
-            单图制图大赛 →
+            {content.ui.about.contestCta}
           </button>
         </div>
       </div>

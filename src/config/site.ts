@@ -188,6 +188,72 @@ export const worksContent = {
 /** 作品分类（管理员可增删；作品档案按此分类筛选） */
 export const worksCategories = ['历史地图', '世界地图', '设定图', '赛事作品', '概念图']
 
+/**
+ * 全站文案字典：页面上的按钮、提示、区块小标题等固定文字集中在这里。
+ * 管理员可在「内容管理 → 页面文案」中修改；修改即时保存并实时显示。
+ */
+export const uiText = {
+  home: {
+    nameEn: 'TiantuMansion',
+    primaryCta: '进入天图府',
+    secondaryCta: '加入我们',
+    previewTitle: '精选作品',
+    newsTitle: '最新动态',
+    viewWorks: '查看全部作品 →',
+    viewNews: '查看全部 →',
+    worksShort: '作品 →',
+  },
+  about: {
+    kicker: '社团介绍',
+    missionLabel: '社团宗旨',
+    historyLabel: '社团历史',
+    annalsLabel: '年鉴 · 重大事件',
+    newsCta: '新闻动态 →',
+    cultureCta: '社团文化 →',
+    contestCta: '单图制图大赛 →',
+  },
+  directory: {
+    title: '创作主题',
+    subtitle: '正史地图 · 半架空 · 全架空',
+    enterSuffix: '位作者 · 进入 →',
+  },
+  earth: {
+    intro:
+      '悬停右侧关键词目录，指南针星核会同步回应，并在数码地球旁浮现对应内容。此处为占位内容，后续替换为正式说明。',
+    clickHint: '点击地球 · 随机发现一位作者的作品',
+  },
+  works: {
+    openHint: '作品收在文件夹里，露出边缘等待翻阅；悬停抽出查看，点击进入成员个人页。',
+    archiveTitle: '作品档案',
+    archiveNote: '按创作主题与作品分类归档的全站作品库',
+    filterAll: '全部',
+    authorLabel: '作者',
+    expand: '展开更多作品 ↓',
+    collapse: '收起 ↑',
+    empty: '该筛选条件下暂无作品（占位提示）',
+  },
+  contact: {
+    kicker: 'CONTACT · 联系天图府',
+    title: '联系天图府',
+    qqLabel: 'QQ',
+    biliLabel: 'BILIBILI',
+    emailLabel: 'EMAIL',
+    groupLabel: 'QQ GROUP',
+    qqNote: '占位号码 · 待替换',
+    biliNote: '占位链接 · 待替换',
+    emailNote: '占位邮箱 · 待确认',
+    groupNote: 'QQ 群号 · 待替换',
+    joinCard: '加入我们',
+    joinCardDesc: '成为天图府的一员',
+    commissionCard: '约稿服务',
+    commissionCardDesc: '承接架空地图与设定绘制',
+    faqCard: '常见问题',
+    faqCardDesc: '加入 / 约稿 / 版权',
+    legalCard: '版权声明',
+    legalCardDesc: '授权与免责说明',
+  },
+}
+
 /** 作品档案条目：全站作品库，支持主题与分类双维度归档 */
 export interface WorkItem {
   id: string

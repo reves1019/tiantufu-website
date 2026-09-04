@@ -24,6 +24,7 @@ import {
   worksCategories as defaultWorksCategories,
   site as defaultSite,
   worksContent as defaultWorks,
+  uiText as defaultUiText,
   type Member,
   type WorkItem,
 } from '../config/site'
@@ -61,6 +62,7 @@ export interface SiteContent {
   members: Member[]
   worksArchive: WorkItem[]
   worksCategories: string[]
+  ui: typeof defaultUiText
 }
 
 // v4：内容主存储迁移至 IndexedDB（可容纳含 Base64 大图的内容），localStorage 仅保留小体积镜像。
@@ -85,6 +87,7 @@ export const defaultContent: SiteContent = {
   members: defaultMembers,
   worksArchive: defaultWorkArchive,
   worksCategories: defaultWorksCategories,
+  ui: defaultUiText,
 }
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'

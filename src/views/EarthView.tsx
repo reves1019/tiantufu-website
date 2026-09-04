@@ -34,8 +34,7 @@ export default function EarthView() {
             className="scene-block mt-4 w-full font-display text-5xl leading-tight tracking-[0.12em] text-parchment-100 lg:text-6xl"
           />
           <p className="scene-block mt-4 max-w-xl text-sm leading-relaxed text-parchment-300">
-            悬停右侧关键词目录，指南针星核会同步回应，并在数码地球旁浮现对应内容。
-            此处为占位内容，后续替换为正式说明。
+            {content.ui.earth.intro}
           </p>
 
           {/* 移动端：横向滚动的关键词条（PC 使用右侧关键词目录） */}
@@ -81,7 +80,7 @@ export default function EarthView() {
             />
           </div>
           <p className="mt-4 text-center font-mono text-[10px] tracking-[0.3em] text-parchment-500">
-            点击地球 · 随机发现一位作者的作品
+            {content.ui.earth.clickHint}
           </p>
         </div>
       </div>

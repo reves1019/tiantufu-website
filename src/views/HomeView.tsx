@@ -69,7 +69,7 @@ export default function HomeView() {
           />
         )}
         <p className="scene-block mt-5 font-serif-en text-sm italic tracking-[0.45em] text-parchment-400 md:text-base">
-          TiantuMansion
+          {content.ui.home.nameEn}
         </p>
         <div className="scene-block mt-10 flex flex-wrap items-center justify-center gap-4">
           <Magnetic>
@@ -78,7 +78,7 @@ export default function HomeView() {
               onClick={() => requestScene(ABOUT_INDEX)}
               className="btn-sheen inline-block rounded-md bg-brand-500 px-12 py-4 text-sm tracking-[0.22em] text-white shadow-[0_0_36px_rgba(255,143,163,0.4)] transition-all duration-300 hover:bg-brand-600 hover:shadow-[0_0_52px_rgba(255,143,163,0.6)]"
             >
-              进入天图府
+              {content.ui.home.primaryCta}
             </button>
           </Magnetic>
           <Magnetic>
@@ -87,7 +87,7 @@ export default function HomeView() {
               onClick={() => requestScene(JOIN_INDEX)}
               className="inline-block rounded-md border border-white/25 bg-ink-950/40 px-10 py-4 text-sm tracking-[0.22em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-400 hover:text-brand-400"
             >
-              加入我们
+              {content.ui.home.secondaryCta}
             </button>
           </Magnetic>
         </div>
@@ -101,7 +101,9 @@ export default function HomeView() {
         <div className="mx-auto flex max-w-[1200px] flex-col gap-4 rounded-xl border border-white/10 bg-ink-950/55 p-4 shadow-[0_0_40px_rgba(0,0,0,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between md:gap-6">
           {/* 精选作品缩略图 */}
           <div className="flex items-center gap-3">
-            <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400 md:block">精选作品</span>
+            <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400 md:block">
+              {content.ui.home.previewTitle}
+            </span>
             <div className="flex items-center gap-2">
               {content.members.slice(0, 3).map((member) => (
                 <button
@@ -131,13 +133,15 @@ export default function HomeView() {
               onClick={() => requestScene(WORKS_INDEX)}
               className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors hover:text-brand-400 lg:block"
             >
-              查看全部作品 →
+              {content.ui.home.viewWorks}
             </button>
           </div>
 
           {/* 最新动态（桌面） */}
           <div className="hidden min-w-0 flex-1 items-center gap-4 border-l border-white/10 pl-4 md:flex">
-            <span className="shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400">最新动态</span>
+            <span className="shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400">
+              {content.ui.home.newsTitle}
+            </span>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               {content.about.news.slice(0, 2).map((item) => (
                 <button
@@ -155,7 +159,7 @@ export default function HomeView() {
               onClick={() => requestScene(NEWS_INDEX)}
               className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors hover:text-brand-400"
             >
-              查看全部 →
+              {content.ui.home.viewNews}
             </button>
           </div>
 
@@ -190,7 +194,7 @@ export default function HomeView() {
               onClick={() => requestScene(WORKS_INDEX)}
               className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-brand-400"
             >
-              作品 →
+              {content.ui.home.worksShort}
             </button>
           </div>
         </div>

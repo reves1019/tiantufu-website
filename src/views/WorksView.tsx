@@ -125,7 +125,7 @@ export default function WorksView() {
           />
           <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent" />
           <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-parchment-300">
-            作品收在文件夹里，露出边缘等待翻阅；悬停抽出查看，点击进入成员个人页。
+            {content.ui.works.openHint}
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export default function WorksView() {
               onClick={toggleExpand}
               className="rounded-full border border-brand-500/40 bg-ink-950/55 px-8 py-3 font-mono text-xs tracking-[0.25em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10 hover:shadow-[0_0_24px_rgba(199,27,27,0.3)]"
             >
-              {visibleCount >= filtered.length ? '收起 ↑' : '展开更多作品 ↓'}
+              {visibleCount >= filtered.length ? content.ui.works.collapse : content.ui.works.expand}
             </button>
           </div>
         )}
@@ -200,9 +200,11 @@ export default function WorksView() {
             <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 05A · WORKS ARCHIVE · 作品档案</p>
             <span className="h-px w-16 bg-white/15" />
           </div>
-          <h2 className="mt-3 font-display text-4xl tracking-[0.14em] text-parchment-100">作品档案</h2>
+          <h2 className="mt-3 font-display text-4xl tracking-[0.14em] text-parchment-100">
+            {content.ui.works.archiveTitle}
+          </h2>
           <p className="mt-2 text-sm tracking-[0.2em] text-parchment-400">
-            按创作主题与作品分类归档的全站作品库 · {archiveAll.length} 件
+            {content.ui.works.archiveNote} · {archiveAll.length} 件
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -228,7 +230,7 @@ export default function WorksView() {
             ))}
           </div>
           <div className="mt-3 flex items-center gap-3">
-            <span className="font-mono text-[10px] tracking-[0.25em] text-parchment-500">作者</span>
+            <span className="font-mono text-[10px] tracking-[0.25em] text-parchment-500">{content.ui.works.authorLabel}</span>
             <select
               value={archiveAuthor ?? ''}
               onChange={(event) => selectArchiveAuthor(event.target.value || null)}
@@ -267,7 +269,7 @@ export default function WorksView() {
 
           {archiveFiltered.length === 0 && (
             <p className="mt-8 text-center font-mono text-sm tracking-[0.3em] text-parchment-500">
-              该筛选条件下暂无作品（占位提示）
+              {content.ui.works.empty}
             </p>
           )}
           {archiveFiltered.length > 6 && (
@@ -277,7 +279,7 @@ export default function WorksView() {
                 onClick={toggleArchiveExpand}
                 className="rounded-full border border-brand-500/40 bg-ink-950/55 px-8 py-3 font-mono text-xs tracking-[0.25em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10 hover:shadow-[0_0_24px_rgba(199,27,27,0.3)]"
               >
-                {archiveCount >= archiveFiltered.length ? '收起 ↑' : '展开更多作品 ↓'}
+                {archiveCount >= archiveFiltered.length ? content.ui.works.collapse : content.ui.works.expand}
               </button>
             </div>
           )}

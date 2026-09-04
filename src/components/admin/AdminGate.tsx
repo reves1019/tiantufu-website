@@ -13,7 +13,7 @@ type GateTab = 'login' | 'register' | 'success'
  * - 已审核成员登录后跳转到自己的个人主页，可完善自我介绍
  */
 export default function AdminGate() {
-  const { gateOpen, closeGate, loginAccount, registerAccount, accounts, refreshAccounts } = useContent()
+  const { gateOpen, closeGate, loginAccount, registerAccount, refreshAccounts } = useContent()
   const [tab, setTab] = useState<GateTab>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -42,8 +42,6 @@ export default function AdminGate() {
   }, [])
 
   if (!gateOpen) return null
-
-  const pendingCount = accounts.filter((a) => a.role === 'member' && a.status === 'pending').length
 
   const resetForm = () => {
     setError('')
@@ -220,11 +218,6 @@ export default function AdminGate() {
                   </p>
                 ))}
               </div>
-              {pendingCount > 0 && (
-                <p className="mt-2 font-mono text-[10px] tracking-[0.15em] text-brand-400">
-                  当前有 {pendingCount} 个待审核成员申请
-                </p>
-              )}
             </div>
           </div>
         ) : (

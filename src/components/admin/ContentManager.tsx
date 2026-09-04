@@ -94,6 +94,7 @@ const TABS = [
   { id: 'categories', label: '作品分类' },
   { id: 'contest', label: '赛事' },
   { id: 'commission', label: '约稿价格' },
+  { id: 'ui', label: '页面文案' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -788,6 +789,34 @@ export default function ContentManager() {
                         onChange={(v) => setAt(`contest.works.${i}.image`, v)}
                       />
                       <TextField label="作品说明" value={work.desc} textarea onChange={(v) => setAt(`contest.works.${i}.desc`, v)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 页面文案：首页/介绍/主题/数码地球/作品集/联系页面的固定按钮与提示文字 */}
+          {tab === 'ui' && (
+            <div>
+              <p className="font-mono text-xs tracking-[0.35em] text-brand-400">UI TEXT · 页面文案</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-parchment-500">
+                这里集中管理首页、社团介绍、创作主题、数码地球、作品集、联系等页面的按钮与提示文字；
+                修改即时保存并实时显示在页面上。
+              </p>
+              <div className="mt-5 space-y-5">
+                {Object.entries(content.ui).map(([group, groupText]) => (
+                  <div key={group} className="rounded-lg border border-white/10 bg-ink-950/45 p-4">
+                    <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">{group.toUpperCase()}</p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {Object.entries(groupText as Record<string, string>).map(([key, value]) => (
+                        <TextField
+                          key={`${group}.${key}`}
+                          label={key}
+                          value={value}
+                          onChange={(v) => setAt(`ui.${group}.${key}`, v)}
+                        />
+                      ))}
                     </div>
                   </div>
                 ))}
