@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { site } from '../config/site'
 import { useContent } from '../lib/contentStore'
 import { requestScene } from '../lib/sceneBus'
@@ -11,6 +11,9 @@ export default function ShortcutOverlay() {
   const [open, setOpen] = useState(false)
   const [motionMode, setMotionMode] = useState(readMotionPreference)
   const [systemReduced, setSystemReduced] = useState(systemReducedMotion)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -23,7 +26,10 @@ export default function ShortcutOverlay() {
       }
       if (event.key === '?') {
         event.preventDefault()
-        setOpen((v) => !v)
+        setOpen((v) => {
+          if (!v) returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          return !v
+        })
         return
       }
       if (event.key === 'b' || event.key === 'B') {
@@ -44,6 +50,21 @@ export default function ShortcutOverlay() {
   }, [])
 
   useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true
+      const frame = window.requestAnimationFrame(() => {
+        dialogRef.current?.querySelector<HTMLElement>('button:not([disabled]), [tabindex]:not([tabindex="-1"])')?.focus()
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
+    if (!wasOpenRef.current) return
+    wasOpenRef.current = false
+    const trigger = returnFocusRef.current
+    returnFocusRef.current = null
+    if (trigger?.isConnected) window.setTimeout(() => trigger.focus(), 0)
+  }, [open])
+
+  useEffect(() => {
     const onMotionPreference = (event: Event) => {
       const detail = (event as CustomEvent<{ preference?: 'system' | 'reduce' }>).detail
       setMotionMode(detail?.preference === 'reduce' ? 'reduce' : 'system')
@@ -57,21 +78,40 @@ export default function ShortcutOverlay() {
     setMotionPreference(motionMode === 'reduce' ? 'system' : 'reduce')
   }
 
+  const onDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'),
+    )
+    if (!focusable.length) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   if (!open) return null
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={() => setOpen(false)}
+      onKeyDown={onDialogKeyDown}
       role="dialog"
       aria-modal="true"
-      aria-label="键盘快捷键"
+      aria-labelledby="shortcut-overlay-title"
     >
       <div
         className="w-[min(460px,88vw)] rounded-xl border border-white/10 bg-ink-900/95 p-7 shadow-[0_0_60px_rgba(199,27,27,0.25)] backdrop-blur-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="font-mono text-xs tracking-[0.5em] text-brand-400">SHORTCUTS · 快捷键</p>
+        <h2 id="shortcut-overlay-title" className="font-mono text-xs tracking-[0.5em] text-brand-400">SHORTCUTS · 快捷键</h2>
         <div className="mt-5 space-y-3 font-mono text-xs tracking-[0.15em] text-parchment-300">
           {navItems.map((item, i) => (
             <div key={item.href} className="flex items-center justify-between gap-4">

@@ -43,6 +43,7 @@ export default function SearchOverlay() {
   const listRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
+  const wasOpenRef = useRef(false)
 
   const openSearch = () => {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -64,6 +65,44 @@ export default function SearchOverlay() {
     }
     return out
   }, [entries, query])
+
+  // Restore focus to the control that opened the search after every close path
+  // (Escape, backdrop, close button, or selecting a result).
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true
+      return
+    }
+    if (!wasOpenRef.current) return
+    wasOpenRef.current = false
+    const trigger = returnFocusRef.current
+    returnFocusRef.current = null
+    if (trigger?.isConnected) window.setTimeout(() => trigger.focus(), 0)
+  }, [open])
+
+  // The app uses per-page scroll containers, so locking body overflow alone
+  // does not stop the page behind the search sheet from moving. Inert the
+  // other app layers and pause those containers while the dialog is open.
+  useEffect(() => {
+    if (!open) return
+    const panel = dialogRef.current
+    const overlay = panel?.parentElement
+    const host = overlay?.parentElement
+    if (!overlay || !host) return
+    const siblings = Array.from(host.children).filter((node) => node !== overlay) as HTMLElement[]
+    const previousInert = siblings.map((node) => node.inert)
+    siblings.forEach((node) => { node.inert = true })
+    const roots = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-root]'))
+    const previousScroll = roots.map((root) => ({ overflowY: root.style.overflowY, overscrollBehavior: root.style.overscrollBehavior }))
+    roots.forEach((root) => { root.style.overflowY = 'hidden'; root.style.overscrollBehavior = 'none' })
+    return () => {
+      siblings.forEach((node, index) => { node.inert = previousInert[index] })
+      roots.forEach((root, index) => {
+        root.style.overflowY = previousScroll[index].overflowY
+        root.style.overscrollBehavior = previousScroll[index].overscrollBehavior
+      })
+    }
+  }, [open])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -101,10 +140,7 @@ export default function SearchOverlay() {
 
   useEffect(() => setActiveIndex(0), [query])
 
-  const close = () => {
-    setOpen(false)
-    window.setTimeout(() => returnFocusRef.current?.focus(), 0)
-  }
+  const close = () => setOpen(false)
 
   const onDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return
@@ -180,7 +216,7 @@ export default function SearchOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-start justify-center bg-black/60 px-4 pt-[10vh] backdrop-blur-sm"
+      className="fixed inset-0 z-[120] flex items-start justify-center overscroll-contain bg-black/60 px-4 pt-[10vh] backdrop-blur-sm"
       onClick={close}
       onKeyDown={onDialogKeyDown}
       role="dialog"
@@ -204,6 +240,8 @@ export default function SearchOverlay() {
             onKeyDown={onKeyDown}
             placeholder={ui.placeholder}
             aria-label={ui.keywordLabel}
+            aria-controls="global-search-results"
+            aria-activedescendant={query.trim() && results.length > 0 ? `global-search-result-${activeIndex}` : undefined}
             className="min-w-0 flex-1 bg-transparent text-lg text-parchment-100 outline-none placeholder:text-parchment-500"
           />
           <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 sm:block">
@@ -219,16 +257,22 @@ export default function SearchOverlay() {
           </button>
         </div>
 
-        <div ref={listRef} className="max-h-[55vh] overflow-y-auto p-2">
+        <div
+          ref={listRef}
+          id="global-search-results"
+          role={query.trim() && results.length > 0 ? 'listbox' : undefined}
+          aria-label={query.trim() && results.length > 0 ? ui.label : undefined}
+          className="max-h-[55vh] overflow-y-auto p-2"
+        >
           {query.trim() ? (
             results.length > 0 ? (
               results.map((entry, i) => {
                 const showHeader = i === 0 || results[i - 1].type !== entry.type
                 const active = i === activeIndex
                 return (
-                  <div key={entry.id}>
+                  <div key={entry.id} role="presentation">
                     {showHeader && (
-                      <p className="px-3 pb-1 pt-3 font-mono text-[10px] tracking-[0.35em] text-brand-400">
+                      <p role="presentation" className="px-3 pb-1 pt-3 font-mono text-[10px] tracking-[0.35em] text-brand-400">
                         <EditableText
                           as="span"
                           value={ui.typeLabels[entry.type]}
@@ -238,6 +282,9 @@ export default function SearchOverlay() {
                     )}
                     <button
                       type="button"
+                      id={`global-search-result-${i}`}
+                      role="option"
+                      aria-selected={active}
                       data-search-index={i}
                       onMouseEnter={() => setActiveIndex(i)}
                       onClick={() => openResult(entry)}

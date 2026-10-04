@@ -78,6 +78,17 @@ export default function Navbar() {
   }, [menuOpen])
 
   useEffect(() => {
+    if (!menuOpen) return
+    const roots = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-root]'))
+    const previous = roots.map((root) => ({ overflowY: root.style.overflowY, overscrollBehavior: root.style.overscrollBehavior }))
+    roots.forEach((root) => { root.style.overflowY = 'hidden'; root.style.overscrollBehavior = 'none' })
+    return () => roots.forEach((root, index) => {
+      root.style.overflowY = previous[index].overflowY
+      root.style.overscrollBehavior = previous[index].overscrollBehavior
+    })
+  }, [menuOpen])
+
+  useEffect(() => {
     const onScene = (event: Event) => {
       const index = (event as CustomEvent).detail.index as number
       const id = navItemsRef.current[index]?.href?.slice(1) ?? SECTION_IDS[index]
@@ -140,6 +151,7 @@ export default function Navbar() {
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('ttf-search-open'))}
             aria-label={content.ui.nav.searchAria}
+            aria-haspopup="dialog"
             className="flex h-10 w-10 items-center justify-center rounded-md border border-white/15 text-parchment-300 transition-colors duration-300 hover:border-brand-500/60 hover:text-brand-400"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
