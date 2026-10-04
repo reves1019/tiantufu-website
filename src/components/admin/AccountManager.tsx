@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useContent } from '../../lib/contentStore'
+import { useDialogFocus } from '../../lib/useDialogFocus'
 
 type ManagerTab = 'pending' | 'all'
 
@@ -30,6 +31,7 @@ export default function AccountManager() {
   const [notice, setNotice] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useDialogFocus<HTMLDivElement>(open, () => setOpen(false))
 
   useEffect(() => {
     const onOpen = () => {
@@ -40,15 +42,6 @@ export default function AccountManager() {
     window.addEventListener('ttf-accounts-manager-open', onOpen)
     return () => window.removeEventListener('ttf-accounts-manager-open', onOpen)
   }, [])
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open])
 
   const pending = useMemo(
     () => accounts.filter((a) => a.role === 'member' && a.status === 'pending'),
@@ -154,13 +147,15 @@ export default function AccountManager() {
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
       <div
+        ref={dialogRef}
         className="flex max-h-[92vh] w-[min(900px,96vw)] flex-col overflow-hidden rounded-xl border border-brand-500/25 bg-ink-900/95 shadow-[0_0_48px_rgba(199,27,27,0.3)]"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="account-manager-title"
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div>
-            <p className="font-mono text-xs tracking-[0.4em] text-brand-400">账号管理 · ACCOUNTS</p>
+            <p id="account-manager-title" className="font-mono text-xs tracking-[0.4em] text-brand-400">账号管理 · ACCOUNTS</p>
             <p className="mt-1 font-mono text-[10px] tracking-[0.2em] text-parchment-500">
               共 {accounts.length} 个账号 · 待审核 {pending.length} 个
             </p>

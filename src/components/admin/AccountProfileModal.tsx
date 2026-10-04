@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useContent } from '../../lib/contentStore'
+import { useDialogFocus } from '../../lib/useDialogFocus'
 import ImageField from './ImageField'
 
 interface AccountProfileModalProps {
@@ -10,6 +11,7 @@ interface AccountProfileModalProps {
 /** 账号可自助维护的公开身份信息；成员权限不延伸到作品、分类或站点文案。 */
 export default function AccountProfileModal({ open, onClose }: AccountProfileModalProps) {
   const { account, content, accountUpdateMeta, accountsReady, hydrated, saveState, accountSaveState, cloudMode } = useContent()
+  const dialogRef = useDialogFocus<HTMLElement>(open && Boolean(account), onClose)
   const linkedMember = useMemo(
     () => (account?.memberId ? content.members.find((member) => member.id === account.memberId) : undefined),
     [account?.memberId, content.members],
@@ -43,15 +45,6 @@ export default function AccountProfileModal({ open, onClose }: AccountProfileMod
     setAvatar(initialProfile.current.avatar)
     setNotice('')
   }, [open, accountId, accountsReady, hydrated])
-
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
 
   if (!open || !account) return null
 
@@ -89,6 +82,7 @@ export default function AccountProfileModal({ open, onClose }: AccountProfileMod
       }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-profile-title"

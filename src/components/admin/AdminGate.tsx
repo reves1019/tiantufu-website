@@ -3,6 +3,7 @@ import { useContent } from '../../lib/contentStore'
 import { MEMBER_INDEX } from '../../lib/pages'
 import { setActiveMemberId } from '../../lib/memberBus'
 import { requestScene } from '../../lib/sceneBus'
+import { useDialogFocus } from '../../lib/useDialogFocus'
 
 type GateTab = 'login' | 'register' | 'success'
 
@@ -13,6 +14,7 @@ type GateTab = 'login' | 'register' | 'success'
  */
 export default function AdminGate() {
   const { gateOpen, closeGate, loginAccount, registerAccount, refreshAccounts, accountsReady, hydrated, cloudMode } = useContent()
+  const dialogRef = useDialogFocus<HTMLDivElement>(gateOpen, closeGate)
   const [tab, setTab] = useState<GateTab>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -99,6 +101,7 @@ export default function AdminGate() {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div
+        ref={dialogRef}
         className="max-h-[92vh] w-[min(460px,94vw)] overflow-y-auto rounded-xl border border-brand-500/25 bg-ink-900/95 p-6 shadow-[0_0_44px_rgba(199,27,27,0.28)]"
         role="dialog"
         aria-modal="true"

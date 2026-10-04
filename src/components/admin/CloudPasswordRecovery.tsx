@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useContent } from '../../lib/contentStore'
+import { useDialogFocus } from '../../lib/useDialogFocus'
 
 /** Supabase password-reset links return here with a short-lived recovery session. */
 export default function CloudPasswordRecovery() {
   const { passwordRecoveryOpen, completePasswordRecovery, account } = useContent()
+  const dialogRef = useDialogFocus<HTMLFormElement>(passwordRecoveryOpen)
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState('')
@@ -36,6 +38,7 @@ export default function CloudPasswordRecovery() {
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
       <form
+        ref={dialogRef}
         onSubmit={(event) => void submit(event)}
         className="w-[min(440px,94vw)] rounded-xl border border-brand-500/30 bg-ink-900 p-6 shadow-[0_0_56px_rgba(199,27,27,0.24)]"
         role="dialog"

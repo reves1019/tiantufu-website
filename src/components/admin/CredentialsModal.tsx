@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useContent } from '../../lib/contentStore'
+import { useDialogFocus } from '../../lib/useDialogFocus'
 
 interface CredentialsModalProps {
   open: boolean
@@ -9,6 +10,7 @@ interface CredentialsModalProps {
 /** 修改当前账号密码：验证旧密码后设置新密码 */
 export default function CredentialsModal({ open, onClose }: CredentialsModalProps) {
   const { changeMyPassword, account, cloudMode } = useContent()
+  const dialogRef = useDialogFocus<HTMLFormElement>(open, onClose)
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -53,6 +55,7 @@ export default function CredentialsModal({ open, onClose }: CredentialsModalProp
       aria-label="修改密码"
     >
       <form
+        ref={dialogRef}
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault()
