@@ -40,7 +40,7 @@ export default function MemberView() {
     story: work.story, author: member.name }))
   return <section ref={root} id="member" data-scroll-root className="atlas-night author-page relative h-full w-full overflow-x-hidden overflow-y-auto"><div className="author-page-inner">
     <CreativeButton direction="top" text={content.ui.member.backWorks} onClick={() => requestScene(WORKS_INDEX)} />
-    {!allowed ? <p className="author-unavailable">{exhibit.memberUnavailable}</p> : <>
+    {!allowed ? <p role="status" className="author-unavailable">{exhibit.memberUnavailable}</p> : <>
       <header className="author-page-header"><img src={member.avatar} alt="" /><div><EditableText as="h1" value={member.name} path={`members.${memberIndex}.name`} /><EditableText as="p" value={member.role} path={`members.${memberIndex}.role`} /></div><div className="author-page-tags">{(member.tags ?? []).map((tag, i) => <EditableText key={i} as="span" value={tag} path={`members.${memberIndex}.tags.${i}`} />)}</div></header>
       <div className="author-profile-facts">
         {domains.length > 0 && <div><EditableText as="h2" value={exhibit.memberDomains} path="ui.exhibition.memberDomains" /><p>{domains.join(' / ')}</p></div>}

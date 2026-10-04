@@ -86,7 +86,7 @@ export default function AccountProfileModal({ open, onClose }: AccountProfileMod
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-profile-title"
-        className="max-h-[min(88dvh,780px)] w-[min(560px,96vw)] overflow-y-auto border border-brand-500/30 bg-ink-900 p-5 shadow-[0_24px_72px_rgba(0,0,0,0.58)] sm:p-7"
+        className="max-h-[min(88dvh,780px)] w-[min(560px,96vw)] overflow-y-auto rounded-2xl border border-brand-500/30 bg-ink-900/95 p-5 shadow-[0_24px_72px_rgba(0,0,0,0.58)] backdrop-blur-xl sm:p-7"
       >
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
           <div>
