@@ -8,10 +8,10 @@
   padding: 10px 22px;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid #e9e1d260;
+  border: 1px solid var(--atlas-line-soft, #e9e1d260);
   border-radius: 999px;
-  color: #e9e1d2;
-  background: #191815;
+  color: var(--atlas-paper, #e9e1d2);
+  background: var(--atlas-surface, #191815);
   text-decoration: none;
   font: 500 13px/1.5 var(--font-body);
   letter-spacing: .08em;
@@ -20,13 +20,13 @@
 }
 .creative-button-label { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; white-space: nowrap; transform: translateX(2px); transition: transform .4s cubic-bezier(.23,1,.32,1), color .3s, letter-spacing .3s; }
 .creative-button-arrow { position: absolute; z-index: 2; left: 17px; opacity: 0; color: #fff; transform: translateX(-10px); transition: transform .4s cubic-bezier(.23,1,.32,1), opacity .3s; pointer-events: none; }
-.creative-button-ink { position: absolute; z-index: 1; left: 50%; top: 50%; width: 180%; aspect-ratio: 1; border-radius: 50%; background: #a33428; opacity: 0; transform: translate(-50%, -50%) scale(.03); transition: transform .55s cubic-bezier(.19,1,.22,1), opacity .25s; pointer-events: none; }
+.creative-button-ink { position: absolute; z-index: 1; left: 50%; top: 50%; width: 180%; aspect-ratio: 1; border-radius: 50%; background: var(--atlas-cinnabar, #a33428); opacity: 0; transform: translate(-50%, -50%) scale(.03); transition: transform .55s cubic-bezier(.19,1,.22,1), opacity .25s; pointer-events: none; }
 .creative-button:is(:hover, :focus-visible) { border-color: transparent; border-radius: 10px; color: #fff; }
 .creative-button:is(:hover, :focus-visible) .creative-button-ink { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .creative-button:is(:hover, :focus-visible) .creative-button-label { transform: translateX(7px); letter-spacing: .11em; }
 .creative-button:is(:hover, :focus-visible) .creative-button-arrow { opacity: 1; transform: none; }
 .creative-button:active { transform: scale(.96); }
-.creative-button:focus-visible { outline: 2px solid #e07763; outline-offset: 4px; }
+.creative-button:focus-visible { outline: 2px solid var(--atlas-focus, #e07763); outline-offset: 4px; }
 .creative-button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 767px) { .creative-button { min-width: 118px; padding-inline: 16px; font-size: 12px; } }
 @media (prefers-reduced-motion: reduce) {
@@ -38,4 +38,3 @@
   .creative-button:is(:hover, :focus-visible) .creative-button-ink { transform: translate(-50%, -50%) scale(1); }
   .creative-button:active { transform: none; }
 }
-

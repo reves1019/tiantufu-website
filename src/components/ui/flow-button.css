@@ -9,16 +9,16 @@
   min-height: 48px;
   max-width: 100%;
   padding: 12px 42px;
-  border: 1.5px solid #e9e1d25c;
+  border: 1.5px solid var(--atlas-line-soft, #e9e1d25c);
   border-radius: 100px;
   background: transparent;
-  color: var(--color-parchment-100, #e9e1d2);
+  color: var(--atlas-paper, var(--color-parchment-100, #e9e1d2));
   font: 500 14px/1.6 var(--font-body, sans-serif);
   cursor: pointer;
   text-decoration: none;
   transition: border-color .6s, color .6s, border-radius .6s cubic-bezier(.23,1,.32,1), transform .2s;
 }
-.flow-button--solid { background: var(--color-brand-500, #a33428); border-color: var(--color-brand-500, #a33428); color: #fff; --flow-fill: var(--color-brand-600, #84271e); }
+.flow-button--solid { background: var(--atlas-cinnabar, var(--color-brand-500, #a33428)); border-color: var(--atlas-cinnabar, var(--color-brand-500, #a33428)); color: #fff; --flow-fill: var(--atlas-cinnabar-strong, var(--color-brand-600, #84271e)); }
 .flow-button-wash { position: absolute; z-index: -1; width: 200%; aspect-ratio: 1; top: 50%; left: 50%; border-radius: 50%; background: var(--flow-fill); opacity: 0; transform: translate(-50%,-50%) scale(0); pointer-events: none; transition: transform .8s cubic-bezier(.19,1,.22,1), opacity .3s; }
 .flow-button-text { position: relative; transform: translateX(-10px); transition: transform .8s cubic-bezier(.23,1,.32,1); overflow-wrap: anywhere; }
 .flow-button-arrow { position: absolute; display: flex; align-items: center; width: 16px; height: 16px; pointer-events: none; transition: transform .8s cubic-bezier(.23,1,.32,1), opacity .5s; }
@@ -29,7 +29,7 @@
 .flow-button:not(:disabled):is(:hover,:focus-visible,:active) .flow-button-text { transform: translateX(10px); }
 .flow-button:not(:disabled):is(:hover,:focus-visible,:active) .flow-button-arrow--in { transform: translateX(0); opacity: 1; }
 .flow-button:not(:disabled):is(:hover,:focus-visible,:active) .flow-button-arrow--out { transform: translateX(44px); opacity: 0; }
-.flow-button:focus-visible { outline: 2px solid #e07763; outline-offset: 4px; }
+.flow-button:focus-visible { outline: 2px solid var(--atlas-focus, #e07763); outline-offset: 4px; }
 .flow-button:not(:disabled):active { transform: scale(.95); }
 .flow-button:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -68,7 +68,7 @@
   width: 240%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #a33428 0 28%, transparent 70%);
+  background: radial-gradient(circle, var(--atlas-cinnabar, #a33428) 0 28%, transparent 70%);
   opacity: 0;
   transform: translate(-50%, -50%) scale(.04);
   transition: transform .6s cubic-bezier(.19,1,.22,1), opacity .25s;
@@ -95,7 +95,7 @@
 .contact-channel-buttons > button:hover,
 .contact-channel-buttons > button:focus-visible {
   color: #fff;
-  border-color: #a33428;
+  border-color: var(--atlas-cinnabar, #a33428);
 }
 .collection-text-link:hover::before,
 .collection-text-link:focus-visible::before,
@@ -174,7 +174,7 @@
   width: 180%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #a33428 0 30%, transparent 72%);
+  background: radial-gradient(circle, var(--atlas-cinnabar, #a33428) 0 30%, transparent 72%);
   opacity: 0;
   transform: translate(-50%, -50%) scale(.04);
   transition: transform .6s cubic-bezier(.19,1,.22,1), opacity .25s;
@@ -185,7 +185,7 @@
 .contact-actions > button:is(:hover, :focus-visible),
 .society-chapter-trigger:is(:hover, :focus-visible) {
   color: #fff;
-  border-color: #a33428;
+  border-color: var(--atlas-cinnabar, #a33428);
   transform: translateX(4px);
 }
 .contact-actions > button:is(:hover, :focus-visible)::before,
@@ -243,7 +243,7 @@
   width: 220%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #a33428 0 24%, transparent 70%);
+  background: radial-gradient(circle, var(--atlas-cinnabar, #a33428) 0 24%, transparent 70%);
   opacity: 0;
   transform: translate(-50%, -50%) scale(.04);
   transition: transform .6s cubic-bezier(.19,1,.22,1), opacity .25s;
@@ -261,7 +261,7 @@
     .author-related > button,
     .culture-entry h2 > button):is(:hover, :focus-visible) {
   color: #fff;
-  border-color: #a33428;
+  border-color: var(--atlas-cinnabar, #a33428);
 }
 :is(.explore-filters button,
     .explore-arrows button,
