@@ -42,7 +42,7 @@ export default function EarthView() {
         <figcaption><div><h2>{active.work.title}</h2>{active.member ? <button type="button" className="exhibit-text-link" onClick={() => { setActiveMemberId(active.member!.id); requestScene(MEMBER_INDEX) }}>{active.work.author} ↗</button> : <p>{active.work.author}</p>}</div>
           <div className="explore-arrows"><button type="button" aria-label={ui.previousMap} disabled={filtered.length < 2} onClick={() => move(-1)}><span className="explore-arrow-label">PREV MAP</span><span aria-hidden="true">←</span></button><button type="button" aria-label={ui.nextMap} disabled={filtered.length < 2} onClick={() => move(1)}><span className="explore-arrow-label">NEXT MAP</span><span aria-hidden="true">→</span></button></div>
         </figcaption>
-      </figure> : <p className="exhibit-empty">{ui.empty}</p>}
+      </figure> : <p role="status" aria-live="polite" className="exhibit-empty">{ui.empty}</p>}
       <p className="explore-hint">{railHint}</p>
       <div className="explore-rail" role="group" aria-label={ui.selectMap}
         onKeyDown={(event) => { if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); move(event.key === 'ArrowRight' ? 1 : -1) } }}>
