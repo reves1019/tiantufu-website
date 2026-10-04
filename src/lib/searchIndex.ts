@@ -1,4 +1,5 @@
 import { site } from '../config/site'
+import { isMemberPublished, publicCatalog } from './publicCatalog'
 import type { SiteContent } from './contentStore'
 import {
   ABOUT_INDEX,
@@ -74,7 +75,7 @@ export function buildSearchIndex(content: SiteContent): SearchEntry[] {
     })
   })
 
-  content.members.forEach((member) => {
+  content.members.filter(isMemberPublished).forEach((member) => {
     const works = [member.work, ...(member.works ?? [])]
     entries.push({
       id: `member-${member.id}`,
@@ -88,7 +89,7 @@ export function buildSearchIndex(content: SiteContent): SearchEntry[] {
     })
   })
 
-  content.worksArchive.forEach((work) => {
+  publicCatalog(content.worksArchive, content.members).forEach(({ work }) => {
     entries.push({
       id: `work-${work.id}`,
       type: 'work',

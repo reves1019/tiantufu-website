@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { accountPresets } from '../../lib/accounts'
 import { useContent } from '../../lib/contentStore'
 import { MEMBER_INDEX } from '../../lib/pages'
 import { setActiveMemberId } from '../../lib/memberBus'
@@ -13,13 +12,14 @@ type GateTab = 'login' | 'register' | 'success'
  * - 已审核成员登录后跳转到自己的个人主页，可完善自我介绍
  */
 export default function AdminGate() {
-  const { gateOpen, closeGate, loginAccount, registerAccount, refreshAccounts } = useContent()
+  const { gateOpen, closeGate, loginAccount, registerAccount, refreshAccounts, accountsReady, hydrated, cloudMode } = useContent()
   const [tab, setTab] = useState<GateTab>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [regUsername, setRegUsername] = useState('')
+  const [regEmail, setRegEmail] = useState('')
   const [regName, setRegName] = useState('')
   const [regPassword, setRegPassword] = useState('')
   const [regNote, setRegNote] = useState('')
@@ -76,12 +76,16 @@ export default function AdminGate() {
     setBusy(true)
     resetForm()
     try {
-      const result = await registerAccount(regUsername, regName, regPassword, regNote)
+      const result = await registerAccount(regUsername, regName, regPassword, regNote, regEmail)
       if (!result.ok) {
         setError(result.error ?? '注册失败')
         return
       }
-      setSuccessMsg('注册申请已提交，请等待管理员审核通过后再登录')
+      setSuccessMsg(
+        cloudMode
+          ? '注册申请已提交。若网站启用了邮箱验证，请先完成邮箱验证；审核通过后即可使用邮箱和密码登录。'
+          : '注册申请已提交，请等待管理员审核通过后再登录',
+      )
       setTab('success')
     } finally {
       setBusy(false)
@@ -98,9 +102,10 @@ export default function AdminGate() {
         className="max-h-[92vh] w-[min(460px,94vw)] overflow-y-auto rounded-xl border border-brand-500/25 bg-ink-900/95 p-6 shadow-[0_0_44px_rgba(199,27,27,0.28)]"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="account-gate-title"
       >
         <div className="flex items-center justify-between">
-          <p className="font-mono text-xs tracking-[0.4em] text-brand-400">天图府 · 账号</p>
+          <p id="account-gate-title" className="font-mono text-xs tracking-[0.4em] text-brand-400">天图府 · 账号</p>
           <button
             type="button"
             onClick={closeGate}
@@ -140,14 +145,16 @@ export default function AdminGate() {
         {tab === 'success' ? (
           <div className="mt-6 rounded-lg border border-gold-400/30 bg-gold-400/5 p-4">
             <p className="text-sm leading-relaxed text-parchment-200">{successMsg}</p>
-            <p className="mt-2 font-mono text-[10px] leading-relaxed tracking-[0.15em] text-parchment-500">
-              审核通过后，用刚才注册的用户名登录即可进入你的个人主页。
+            <p className="mt-2 text-xs leading-relaxed text-parchment-400">
+              {cloudMode
+                ? '申请会提交到云端，管理员可在账号管理中审核。'
+                : '审核通过后，用注册用户名登录即可进入个人主页。当前申请只保存在提交设备，其他设备的管理员无法收到。'}
             </p>
             <button
               type="button"
               onClick={() => {
                 setTab('login')
-                setUsername(regUsername)
+                setUsername(cloudMode ? regEmail : regUsername)
               }}
               className="mt-4 w-full rounded-md border border-brand-500/50 py-2 text-sm tracking-[0.2em] text-brand-400 transition-colors hover:bg-brand-500/10"
             >
@@ -155,15 +162,24 @@ export default function AdminGate() {
             </button>
           </div>
         ) : tab === 'login' ? (
-          <div className="mt-5">
+          <form
+            className="mt-5"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submitLogin()
+            }}
+          >
             <label className="block">
-              <span className={labelCls}>用户名</span>
+              <span className={labelCls}>{cloudMode ? '邮箱' : '用户名'}</span>
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="用户名"
+                placeholder={cloudMode ? 'Supabase 登录邮箱' : '用户名'}
+                type={cloudMode ? 'email' : 'text'}
+                autoComplete={cloudMode ? 'email' : 'username'}
                 autoFocus
                 className={inputCls}
+                required
               />
             </label>
             <div className="relative mt-3">
@@ -173,7 +189,9 @@ export default function AdminGate() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="密码"
+                autoComplete="current-password"
                 className={`${inputCls} pr-14`}
+                required
               />
               <button
                 type="button"
@@ -194,43 +212,52 @@ export default function AdminGate() {
             </label>
             {error && <p className="mt-3 font-mono text-xs leading-relaxed text-brand-400">{error}</p>}
             <button
-              type="button"
-              disabled={busy}
-              onClick={() => void submitLogin()}
+              type="submit"
+              disabled={busy || !accountsReady || !hydrated}
               data-testid="account-login-submit"
               className="mt-5 w-full rounded-md bg-brand-500 py-2.5 text-sm tracking-[0.2em] text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
             >
-              登录
+              {!accountsReady || !hydrated ? '正在读取资料…' : busy ? '正在登录…' : '登录'}
             </button>
-
-            <div className="mt-4 rounded-lg border border-white/10 bg-ink-950/60 p-3">
-              <p className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">
-                预置管理员（登录后请尽快修改密码）
-              </p>
-              <div className="mt-2 grid gap-1">
-                {accountPresets.map((preset) => (
-                  <p key={preset.username} className="font-mono text-[10px] tracking-[0.08em] text-parchment-400">
-                    <span className="text-parchment-200">{preset.username}</span>
-                    <span className="mx-1.5 text-parchment-500">·</span>
-                    <span className="text-parchment-500">{preset.displayName}</span>
-                    <span className="mx-1.5 text-parchment-500">·</span>
-                    <span className="text-parchment-500/80">默认密码 {preset.defaultPassword}</span>
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
+            <p className="mt-4 border-t border-white/10 pt-3 text-xs leading-relaxed text-parchment-500">
+              {cloudMode
+                ? '已连接云端账号。管理员可编辑共享站点内容；成员账号需审核后启用，且只能维护自己的公开资料。'
+                : '当前账号与编辑内容保存在本机浏览器。不同设备之间不会实时同步，管理员权限也不是线上服务器鉴权。'}
+            </p>
+          </form>
         ) : (
-          <div className="mt-5">
+          <form
+            className="mt-5"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void submitRegister()
+            }}
+          >
             <label className="block">
               <span className={labelCls}>登录用户名（唯一，2-24 位中英文/数字/下划线）</span>
               <input
                 value={regUsername}
                 onChange={(event) => setRegUsername(event.target.value)}
                 placeholder="如 tiantu_fan"
+                autoComplete="username"
                 className={inputCls}
+                required
               />
             </label>
+            {cloudMode && (
+              <label className="mt-3 block">
+                <span className={labelCls}>登录邮箱（用于验证与密码找回）</span>
+                <input
+                  value={regEmail}
+                  onChange={(event) => setRegEmail(event.target.value)}
+                  type="email"
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  className={inputCls}
+                  required
+                />
+              </label>
+            )}
             <label className="mt-3 block">
               <span className={labelCls}>想展示的昵称（会显示在个人主页上）</span>
               <input
@@ -238,16 +265,21 @@ export default function AdminGate() {
                 onChange={(event) => setRegName(event.target.value)}
                 placeholder="如：山河绘图员"
                 className={inputCls}
+                autoComplete="nickname"
+                required
               />
             </label>
             <label className="mt-3 block">
-              <span className={labelCls}>密码（至少 4 位）</span>
+              <span className={labelCls}>{cloudMode ? '密码（至少 8 位）' : '密码（至少 4 位）'}</span>
               <input
                 type="password"
                 value={regPassword}
                 onChange={(event) => setRegPassword(event.target.value)}
                 placeholder="设置登录密码"
+                autoComplete="new-password"
+                minLength={cloudMode ? 8 : 4}
                 className={inputCls}
+                required
               />
             </label>
             <label className="mt-3 block">
@@ -262,18 +294,19 @@ export default function AdminGate() {
             </label>
             {error && <p className="mt-3 font-mono text-xs leading-relaxed text-brand-400">{error}</p>}
             <button
-              type="button"
-              disabled={busy}
-              onClick={() => void submitRegister()}
+              type="submit"
+              disabled={busy || !accountsReady || !hydrated}
               data-testid="account-register-submit"
               className="mt-5 w-full rounded-md bg-brand-500 py-2.5 text-sm tracking-[0.2em] text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
             >
-              提交注册申请
+              {!accountsReady || !hydrated ? '正在读取资料…' : busy ? '提交中…' : '提交注册申请'}
             </button>
-            <p className="mt-3 font-mono text-[10px] leading-relaxed tracking-[0.15em] text-parchment-500">
-              仅可注册成员账号；提交后由管理员审核，通过后自动生成个人主页与作品集。
+            <p className="mt-3 text-xs leading-relaxed text-parchment-500">
+              {cloudMode
+                ? '仅可注册成员账号；申请会进入云端审核队列，通过后生成个人主页与作品入口。'
+                : '仅可注册成员账号；申请经管理员审核后生成个人主页与作品入口。当前申请只保存在此设备，其他设备的管理员暂时无法收到。'}
             </p>
-          </div>
+          </form>
         )}
       </div>
     </div>

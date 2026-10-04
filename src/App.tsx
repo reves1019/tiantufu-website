@@ -11,6 +11,7 @@ import AdminGate from './components/admin/AdminGate'
 import AdminToolbar from './components/admin/AdminToolbar'
 import ContentManager from './components/admin/ContentManager'
 import AccountManager from './components/admin/AccountManager'
+import CloudPasswordRecovery from './components/admin/CloudPasswordRecovery'
 import MemberToolbar from './components/admin/MemberToolbar'
 import { ContentProvider, useContent } from './lib/contentStore'
 import AboutView from './views/AboutView'
@@ -30,6 +31,7 @@ import FaqView from './views/FaqView'
 import LegalView from './views/LegalView'
 import NewsDetailView from './views/NewsDetailView'
 import WorksView from './views/WorksView'
+import { initMotionPreference } from './lib/motionPreference'
 
 /** 入场幕布：页面加载时向上掀起 */
 function EntranceCurtain() {
@@ -44,6 +46,8 @@ function EntranceCurtain() {
 
 function AppShell() {
   const { openGate } = useContent()
+
+  useEffect(() => initMotionPreference(), [])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
@@ -120,6 +124,7 @@ function AppShell() {
       <ContentManager />
       {/* 管理员账号管理（审核成员注册/重置密码/导入导出） */}
       <AccountManager />
+      <CloudPasswordRecovery />
     </>
   )
 }

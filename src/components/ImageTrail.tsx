@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
 
 interface TrailItem {
   id: number
@@ -29,9 +30,10 @@ export default function ImageTrail({ images, size = 76, max = 12 }: ImageTrailPr
 
   useEffect(() => {
     if (images.length === 0) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (window.matchMedia('(max-width: 767px)').matches) return
 
     const onMove = (event: MouseEvent) => {
+      if (isMotionReduced()) return
       const host = hostRef.current
       if (!host) return
       // 仅当所在页面处于可见状态时才生成尾迹
@@ -60,7 +62,12 @@ export default function ImageTrail({ images, size = 76, max = 12 }: ImageTrailPr
     }
 
     window.addEventListener('mousemove', onMove, { passive: true })
-    return () => window.removeEventListener('mousemove', onMove)
+    const onMotionPreference = () => { if (isMotionReduced()) setItems([]) }
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+    }
   }, [images, max])
 
   return (

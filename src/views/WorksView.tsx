@@ -1,315 +1,79 @@
-import { useMemo, useState } from 'react'
-import ImageTrail from '../components/ImageTrail'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lightbox from '../components/Lightbox'
-import LetterSwap from '../components/LetterSwap'
-import WorkArchiveCard from '../components/WorkArchiveCard'
-import WorkFolderCard from '../components/WorkFolderCard'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { MEMBER_INDEX } from '../lib/pages'
 import { setActiveMemberId } from '../lib/memberBus'
 import { requestScene } from '../lib/sceneBus'
+import { isMemberPublished, isPortraitPlaceholderWork } from '../lib/publicCatalog'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { isMotionReduced } from '../lib/motionPreference'
 
-function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 rounded-full border px-4 py-1.5 font-mono text-[10px] tracking-[0.18em] transition-all duration-300 ${
-        active
-          ? 'border-brand-500 bg-brand-500/15 text-brand-400 shadow-[0_0_14px_rgba(199,27,27,0.25)]'
-          : 'border-white/10 bg-ink-950/45 text-parchment-300 hover:border-brand-500/40 hover:text-brand-400'
-      }`}
-    >
-      {label}
-    </button>
-  )
-}
+const readingPlace = { topic: '', category: '', author: '', count: 12, scroll: 0 }
+gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-/** 作品集页：一人一张代表作，点击进入成员个人页 */
 export default function WorksView() {
   const { content, admin } = useContent()
-  const worksPage = content.works
-  const members = content.members
-  const topics = content.topics
-  const trailImages = members.flatMap((member) => [member.avatar, member.work.image])
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState(4)
-  const [archiveTopic, setArchiveTopic] = useState<string | null>(null)
-  const [archiveCategory, setArchiveCategory] = useState<string | null>(null)
-  const [archiveAuthor, setArchiveAuthor] = useState<string | null>(null)
-  const [archiveCount, setArchiveCount] = useState(6)
+  const ui = content.ui.works
+  const exhibit = content.ui.exhibition
+  const root = useRef<HTMLElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  const [topic, setTopic] = useState(readingPlace.topic)
+  const [category, setCategory] = useState(readingPlace.category)
+  const [author, setAuthor] = useState(readingPlace.author)
+  const [count, setCount] = useState(readingPlace.count)
+  const [advanced, setAdvanced] = useState(Boolean(category || author))
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const catalogue = useMemo(() => exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative), [content.worksArchive, content.members, content.ui.member.representative])
+  const members = content.members.filter(isMemberPublished)
+  const filtered = catalogue.filter(({ work, member }) => (!topic || work.topic === topic) && (!category || work.category === category) && (!author || member?.id === author || work.author === author))
+  const images = filtered.map(({ work, member }) => ({ src: work.fullImage ?? (member?.work.image === work.image ? member.work.fullImage : undefined) ?? work.image, title: work.title, desc: work.desc, author: work.author, story: work.story }))
+  useGSAP(() => {
+    if (admin || !root.current) return
+    const media = gsap.matchMedia()
+    media.add('(min-width: 768px) and (prefers-reduced-motion: no-preference)', () => {
+      gsap.utils.toArray<HTMLElement>('.collection-map-cover', root.current).forEach((image) => {
+        gsap.fromTo(image, { scale: .97, opacity: .75 }, { scale: 1, opacity: 1, ease: 'none', scrollTrigger: {
+          trigger: image, scroller: root.current, start: 'top 96%', end: 'top 72%', scrub: .5,
+        } })
+      })
+    })
+    return () => media.revert()
+  }, { scope: root, dependencies: [topic, category, author, count, catalogue.length, admin], revertOnUpdate: true })
+  useEffect(() => {
+    const node = root.current
+    if (!node) return
+    node.scrollTop = readingPlace.scroll
+    return () => { readingPlace.scroll = node.scrollTop }
+  }, [])
+  useEffect(() => { Object.assign(readingPlace, { topic, category, author, count }) }, [topic, category, author, count])
+  const openAuthor = (id: string) => { setActiveMemberId(id); requestScene(MEMBER_INDEX) }
+  const reset = () => { setTopic(''); setCategory(''); setAuthor(''); setCount(12) }
+  const featured = catalogue[0]
 
-  const filtered = useMemo(
-    () =>
-      members
-        .map((member, index) => ({ member, index }))
-        .filter(({ member }) => selectedTopic === null || member.topic === selectedTopic),
-    [members, selectedTopic],
-  )
-  const shown = filtered.slice(0, visibleCount)
-
-  const selectTopic = (id: string | null) => {
-    setSelectedTopic(id)
-    setVisibleCount(4)
-  }
-
-  const toggleExpand = () => {
-    setVisibleCount((v) => (v >= filtered.length ? 4 : Math.min(filtered.length, v + 4)))
-  }
-
-  const countFor = (topicId: string) => members.filter((member) => member.topic === topicId).length
-
-  const archiveAll = content.worksArchive
-  const archiveAuthors = useMemo(() => Array.from(new Set(archiveAll.map((w) => w.author))).sort(), [archiveAll])
-  const archiveFiltered = useMemo(
-    () =>
-      archiveAll
-        .map((work, index) => ({ work, index }))
-        .filter(
-          ({ work }) =>
-            (archiveTopic === null || work.topic === archiveTopic) &&
-            (archiveCategory === null || work.category === archiveCategory) &&
-            (archiveAuthor === null || work.author === archiveAuthor),
-        ),
-    [archiveAll, archiveTopic, archiveCategory, archiveAuthor],
-  )
-  const archiveShown = archiveFiltered.slice(0, archiveCount)
-  const archiveImages = archiveFiltered.map(({ work }) => ({
-    src: work.image,
-    title: work.title,
-    desc: `${work.author} · ${work.desc}`,
-  }))
-
-  const selectArchiveTopic = (id: string | null) => {
-    setArchiveTopic(id)
-    setArchiveCount(6)
-  }
-  const selectArchiveCategory = (id: string | null) => {
-    setArchiveCategory(id)
-    setArchiveCount(6)
-  }
-  const selectArchiveAuthor = (name: string | null) => {
-    setArchiveAuthor(name)
-    setArchiveCount(6)
-  }
-  const toggleArchiveExpand = () => {
-    setArchiveCount((v) => (v >= archiveFiltered.length ? 6 : Math.min(archiveFiltered.length, v + 6)))
-  }
-
-  return (
-    <section
-      id="works"
-      data-scroll-root
-      className="relative h-full w-full overflow-y-auto"
-    >
-      {/* 图片鼠标轨迹（视频中的 Image Trail） */}
-      <ImageTrail images={trailImages} />
-
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="text-center">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 05 · WORKS · 作品集</p>
-          {admin ? (
-            <EditableText
-              as="h1"
-              value={worksPage.title}
-              path="works.title"
-              className="scene-block mt-5 w-full text-center font-display text-5xl tracking-[0.18em] text-parchment-100 lg:text-7xl"
-            />
-          ) : (
-            <LetterSwap
-              as="h1"
-              text={worksPage.title}
-              className="scene-block mt-5 font-display text-5xl tracking-[0.18em] text-parchment-100 lg:text-7xl"
-            />
-          )}
-          <EditableText
-            as="p"
-            value={worksPage.subtitle}
-            path="works.subtitle"
-            className="mt-3 w-full text-center text-sm tracking-[0.3em] text-parchment-400"
-          />
-          <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent" />
-          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-parchment-300">
-            {content.ui.works.openHint}
-          </p>
-        </div>
-
-        {/* 主题筛选 chips */}
-        <div className="scene-block mt-9 flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => selectTopic(null)}
-            className={`rounded-full border px-5 py-2 font-mono text-[11px] tracking-[0.2em] transition-all duration-300 ${
-              selectedTopic === null
-                ? 'border-brand-500 bg-brand-500/15 text-brand-400 shadow-[0_0_18px_rgba(199,27,27,0.25)]'
-                : 'border-white/10 bg-ink-950/45 text-parchment-300 hover:border-brand-500/40 hover:text-brand-400'
-            }`}
-          >
-            全部 · {members.length}
-          </button>
-          {topics.map((topic) => {
-            const active = selectedTopic === topic.id
-            return (
-              <button
-                key={topic.id}
-                type="button"
-                onClick={() => selectTopic(topic.id)}
-                className={`rounded-full border px-5 py-2 font-mono text-[11px] tracking-[0.2em] transition-all duration-300 ${
-                  active
-                    ? 'border-brand-500 bg-brand-500/15 text-brand-400 shadow-[0_0_18px_rgba(199,27,27,0.25)]'
-                    : 'border-white/10 bg-ink-950/45 text-parchment-300 hover:border-brand-500/40 hover:text-brand-400'
-                }`}
-              >
-                {topic.name} · {countFor(topic.id)}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* 文件夹式作品卡（一人一个文件夹） */}
-        <div className="scene-block mt-14 grid grid-cols-1 justify-items-center gap-10 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {shown.map(({ member, index: i }) => (
-            <WorkFolderCard
-              key={member.id}
-              member={member}
-              memberIndex={i}
-              onClick={() => {
-                setActiveMemberId(member.id)
-                requestScene(MEMBER_INDEX)
-              }}
-            />
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <p className="mt-16 text-center font-mono text-sm tracking-[0.3em] text-parchment-500">
-            该主题暂无成员作品（占位提示）
-          </p>
-        )}
-
-        {filtered.length > 4 && (
-          <div className="scene-block mt-12 flex justify-center">
-            <button
-              type="button"
-              onClick={toggleExpand}
-              className="rounded-full border border-brand-500/40 bg-ink-950/55 px-8 py-3 font-mono text-xs tracking-[0.25em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10 hover:shadow-[0_0_24px_rgba(199,27,27,0.3)]"
-            >
-              {visibleCount >= filtered.length ? content.ui.works.collapse : content.ui.works.expand}
-            </button>
-          </div>
-        )}
-
-        {/* 作品档案：全站作品库（管理员可增删改与分类） */}
-        <div className="scene-block mt-24">
-          <div className="flex items-baseline gap-4">
-            <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 05A · WORKS ARCHIVE · 作品档案</p>
-            <span className="h-px w-16 bg-white/15" />
-          </div>
-          <h2 className="mt-3 font-display text-4xl tracking-[0.14em] text-parchment-100">
-            {content.ui.works.archiveTitle}
-          </h2>
-          <p className="mt-2 text-sm tracking-[0.2em] text-parchment-400">
-            {content.ui.works.archiveNote} · {archiveAll.length} 件
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <FilterChip
-              active={archiveTopic === null}
-              onClick={() => selectArchiveTopic(null)}
-              label={content.ui.works.allTopics}
-            />
-            {topics.map((topic) => (
-              <FilterChip
-                key={topic.id}
-                active={archiveTopic === topic.id}
-                onClick={() => selectArchiveTopic(topic.id)}
-                label={topic.name}
-              />
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <FilterChip
-              active={archiveCategory === null}
-              onClick={() => selectArchiveCategory(null)}
-              label={content.ui.works.allTypes}
-            />
-            {content.worksCategories.map((category) => (
-              <FilterChip
-                key={category}
-                active={archiveCategory === category}
-                onClick={() => selectArchiveCategory(category)}
-                label={category}
-              />
-            ))}
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <span className="font-mono text-[10px] tracking-[0.25em] text-parchment-500">{content.ui.works.authorLabel}</span>
-            <select
-              value={archiveAuthor ?? ''}
-              onChange={(event) => selectArchiveAuthor(event.target.value || null)}
-              className="rounded-md border border-white/10 bg-ink-950/70 px-3 py-1.5 font-mono text-[10px] tracking-[0.15em] text-parchment-300 outline-none transition-colors focus:border-brand-500"
-            >
-              <option value="">全部作者</option>
-              {archiveAuthors.map((author) => (
-                <option key={author} value={author}>
-                  {author}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {archiveShown.map(({ work, index }) => {
-              const member = members.find((m) => m.name === work.author)
-              const topicName = topics.find((t) => t.id === work.topic)?.name ?? work.topic
-              return (
-                <WorkArchiveCard
-                  key={work.id}
-                  work={work}
-                  workIndex={index}
-                  topicName={topicName}
-                  canOpen={!!member}
-                  onZoom={() => setLightboxIndex(index)}
-                  onClick={() => {
-                    if (member) {
-                      setActiveMemberId(member.id)
-                      requestScene(MEMBER_INDEX)
-                    }
-                  }}
-                />
-              )
-            })}
-          </div>
-
-          {archiveFiltered.length === 0 && (
-            <p className="mt-8 text-center font-mono text-sm tracking-[0.3em] text-parchment-500">
-              {content.ui.works.empty}
-            </p>
-          )}
-          {archiveFiltered.length > 6 && (
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={toggleArchiveExpand}
-                className="rounded-full border border-brand-500/40 bg-ink-950/55 px-8 py-3 font-mono text-xs tracking-[0.25em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10 hover:shadow-[0_0_24px_rgba(199,27,27,0.3)]"
-              >
-                {archiveCount >= archiveFiltered.length ? content.ui.works.collapse : content.ui.works.expand}
-              </button>
-            </div>
-          )}
-        </div>
+  return <section ref={root} id="works" data-scroll-root className="atlas-night collection-page relative h-full w-full overflow-x-hidden overflow-y-auto">
+    <div className="collection-inner">
+      <header className="collection-header">
+        <div><EditableText as="h1" value={exhibit.catalogueTitle} path="ui.exhibition.catalogueTitle" /><EditableText as="p" value={exhibit.catalogueIntro} path="ui.exhibition.catalogueIntro" className="reading-copy" /><button type="button" className="collection-text-link" onClick={() => list.current?.scrollIntoView({ behavior: isMotionReduced() ? 'auto' : 'smooth', block: 'start' })}>{exhibit.browseCatalogue} ↓</button></div>
+        {featured && <button type="button" className="collection-feature" onClick={() => { reset(); setLightboxIndex(0) }} aria-label={`${ui.readMap} · ${featured.work.title}`}><img src={featured.work.image} alt={featured.work.title} loading="eager" /><span>{featured.work.title}<small>{featured.work.author} · {ui.readMap} ↗</small></span></button>}
+      </header>
+        <div ref={list} className="collection-list" id="collection-catalogue">
+        <h2 className="collection-section-title"><EditableText as="span" value={exhibit.collectionTitle} path="ui.exhibition.collectionTitle" /><span className="collection-count">{filtered.length} {exhibit.countUnit}</span></h2>
+        <div className="map-catalogue-filters"><div role="group" aria-label={ui.catalogue} className="map-theme-filters"><button type="button" aria-pressed={!topic} onClick={() => { setTopic(''); setCount(12) }}>{ui.filterAll}<span>{catalogue.length}</span></button>{content.topics.map((entry) => <button type="button" key={entry.id} aria-pressed={topic === entry.id} onClick={() => { setTopic(entry.id); setCount(12) }}>{entry.name}<span>{catalogue.filter(({ work }) => work.topic === entry.id).length}</span></button>)}</div><button type="button" aria-expanded={advanced} aria-controls="map-advanced-filters" onClick={() => setAdvanced(!advanced)}>{ui.advancedFilters} {advanced ? '−' : '＋'}</button></div>
+        {advanced && <div id="map-advanced-filters" className="map-advanced-filters"><label>{ui.allTypes}<select aria-label={ui.allTypes} value={category} onChange={(event) => { setCategory(event.target.value); setCount(12) }}><option value="">{ui.allTypes}</option>{content.worksCategories.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label>{ui.authorLabel}<select aria-label={ui.authorLabel} value={author} onChange={(event) => { setAuthor(event.target.value); setCount(12) }}><option value="">{ui.allMembers}</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>}
+        {(topic || category || author) && <button type="button" className="collection-text-link" onClick={reset}>{exhibit.resetFilters} ×</button>}
+        <div className="collection-map-grid">{filtered.slice(0, count).map(({ work, member, index }, i) => <article className="collection-map" key={work.id}>
+          <button type="button" className="collection-map-cover" onClick={() => setLightboxIndex(i)} aria-label={`${ui.readMap} · ${work.title}`}><img src={work.image} alt={work.title} loading="lazy" /><span><b>READ MAP</b><small>{ui.readMap} ↗</small></span></button>
+          <div className="collection-map-caption"><div>{index >= 0 ? <EditableText as="h3" value={work.title} path={`worksArchive.${index}.title`} /> : <h3>{work.title}</h3>}<p>{content.topics.find((entry) => entry.id === work.topic)?.name ?? work.category}</p></div>{member ? <button type="button" className="collection-byline" onClick={() => openAuthor(member.id)}><img src={member.avatar} alt="" loading="lazy" />{member.name} ↗</button> : <span>{work.author}</span>}</div>
+        </article>)}</div>
+        {!filtered.length && <p className="map-catalogue-empty">{ui.empty}</p>}
+        <div className="collection-list-end"><p aria-live="polite">{exhibit.shownLabel} {Math.min(count, filtered.length)} / {filtered.length}</p>{filtered.length > 12 && <button type="button" className="map-expand" onClick={() => setCount(count >= filtered.length ? 12 : count + 12)}>{count >= filtered.length ? ui.collapse : ui.expand}</button>}</div>
       </div>
-      {/* 作品档案大图查看 */}
-      {lightboxIndex !== null && (
-        <Lightbox
-          images={archiveImages}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onIndexChange={setLightboxIndex}
-        />
-      )}
-    </section>
-  )
+      <section className="collection-authors"><EditableText as="h2" value={exhibit.authorArchive} path="ui.exhibition.authorArchive" /><div className="author-dossier-grid">{members.map((member) => { const dossierWork = member.works?.find((work) => !isPortraitPlaceholderWork(work, member)) ?? (!isPortraitPlaceholderWork(member.work, member) ? member.work : null); return <button type="button" key={member.id} className="author-dossier" onClick={() => openAuthor(member.id)} aria-label={`${ui.authorPage} · ${member.name}`}><div className="author-dossier-folder">{dossierWork ? <img className="author-dossier-map" src={dossierWork.image} alt={dossierWork.title} loading="lazy" /> : <div className="author-dossier-pending"><span>作品档案</span><strong>作品图待补</strong><small>先浏览作者介绍 ↗</small></div>}<img className="author-dossier-portrait" src={member.avatar} alt="" loading="lazy" /><span>{ui.authorPage} ↗</span></div><h3>{member.name}</h3><p>{member.role}</p></button>})}</div></section>
+    </div>
+    {lightboxIndex !== null && <Lightbox images={images} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndexChange={setLightboxIndex} />}
+  </section>
 }

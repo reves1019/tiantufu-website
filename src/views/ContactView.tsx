@@ -1,123 +1,41 @@
-import Magnetic from '../components/Magnetic'
+import { useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { COMMISSION_INDEX, FAQ_INDEX, JOIN_INDEX, LEGAL_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
 
 export default function ContactView() {
-  const { content, openGate } = useContent()
+  const { content, admin, openGate } = useContent()
+  const root = useRef<HTMLElement>(null)
+  const [copied, setCopied] = useState('')
+  const [failed, setFailed] = useState(false)
   const contact = content.site.contact
-
-  const entries = [
-    { label: content.ui.contact.joinCard, desc: content.ui.contact.joinCardDesc, index: JOIN_INDEX },
-    { label: content.ui.contact.commissionCard, desc: content.ui.contact.commissionCardDesc, index: COMMISSION_INDEX },
-    { label: content.ui.contact.faqCard, desc: content.ui.contact.faqCardDesc, index: FAQ_INDEX },
-    { label: content.ui.contact.legalCard, desc: content.ui.contact.legalCardDesc, index: LEGAL_INDEX },
+  const ui = content.ui.contact
+  const exhibit = content.ui.exhibition
+  useExhibitionMotion(root, admin, 0)
+  const entries = [{key:'joinCard',desc:'joinCardDesc',index:JOIN_INDEX,en:'JOIN THE HOUSE'},{key:'commissionCard',desc:'commissionCardDesc',index:COMMISSION_INDEX,en:'COMMISSION A MAP'},{key:'faqCard',desc:'faqCardDesc',index:FAQ_INDEX,en:'READ THE FAQ'},{key:'legalCard',desc:'legalCardDesc',index:LEGAL_INDEX,en:'COPYRIGHT & USE'}] as const
+  const channels = [
+    {key:'qq',label:ui.qqLabel,note:ui.qqNote,value:contact.qq,href:`tencent://message/?uin=${contact.qq}`},
+    {key:'qqGroup',label:ui.groupLabel,note:ui.groupNote,value:contact.qqGroup,href:`tencent://group/pa?cmd=2&uin=${contact.qqGroup}`},
+    {key:'email',label:ui.emailLabel,note:ui.emailNote,value:contact.email,href:`mailto:${contact.email}`},
+    {key:'bilibili',label:ui.biliLabel,note:ui.biliNote,value:contact.bilibili,href:contact.bilibili},
   ]
-
-  return (
-    <section id="contact" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1700px] flex-col items-center justify-center px-6 py-24 text-center">
-        <p className="font-mono text-xs tracking-[0.5em] text-brand-400">{content.ui.contact.kicker}</p>
-        <EditableText
-          as="h1"
-          value={content.ui.contact.title}
-          path="ui.contact.title"
-          className="scene-block mt-5 w-full font-display text-5xl tracking-[0.18em] text-parchment-100 sm:text-6xl lg:text-8xl"
-        />
-
-        <div className="scene-block mt-12 flex flex-wrap items-stretch justify-center gap-6">
-          <a
-            href={`tencent://message/?uin=${contact.qq}`}
-            title={`QQ 号：${contact.qq}`}
-            className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
-          >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.qqLabel}</span>
-            <EditableText as="span" value={contact.qq} path="site.contact.qq" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value={content.ui.contact.qqNote} path="ui.contact.qqNote" className="mt-2 block w-full text-xs text-parchment-500" />
-          </a>
-          <a
-            href={contact.bilibili}
-            target="_blank"
-            rel="noreferrer"
-            className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
-          >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.biliLabel}</span>
-            <EditableText as="span" value={contact.bilibili} path="site.contact.bilibili" className="mt-4 block w-full break-all text-sm tracking-[0.1em] text-parchment-100" />
-            <EditableText as="span" value={content.ui.contact.biliNote} path="ui.contact.biliNote" className="mt-2 block w-full text-xs text-parchment-500" />
-          </a>
-          <a
-            href={`mailto:${contact.email}`}
-            className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
-          >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.emailLabel}</span>
-            <EditableText as="span" value={contact.email} path="site.contact.email" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value={content.ui.contact.emailNote} path="ui.contact.emailNote" className="mt-2 block w-full text-xs text-parchment-500" />
-          </a>
-          <a
-            href={`tencent://group/pa?cmd=2&uin=${contact.qqGroup}`}
-            title={`QQ 群号：${contact.qqGroup}`}
-            className="w-64 rounded-lg border border-white/10 bg-ink-950/45 px-8 py-8 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
-          >
-            <span className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.contact.groupLabel}</span>
-            <EditableText as="span" value={contact.qqGroup} path="site.contact.qqGroup" className="mt-4 block w-full text-lg tracking-[0.15em] text-parchment-100" />
-            <EditableText as="span" value={content.ui.contact.groupNote} path="ui.contact.groupNote" className="mt-2 block w-full text-xs text-parchment-500" />
-          </a>
-        </div>
-
-        {/* 入口枢纽：加入 / 约稿 / FAQ / 版权 */}
-        <div className="scene-block mt-12 grid gap-4 text-left sm:grid-cols-2 xl:grid-cols-4">
-          {entries.map((entry) => (
-            <Magnetic key={entry.label} className="h-full w-full">
-              <button
-                type="button"
-                onClick={() => requestScene(entry.index)}
-                className="group h-full w-full rounded-lg border border-white/10 bg-ink-950/45 px-6 py-6 text-left backdrop-blur-sm transition-all duration-300 hover:border-brand-500/50 hover:shadow-[0_0_28px_rgba(199,27,27,0.18)]"
-              >
-                <p className="font-display text-xl tracking-[0.12em] text-parchment-100 transition-colors group-hover:text-brand-400">
-                  {entry.label}{' '}
-                  <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-parchment-500">{entry.desc}</p>
-              </button>
-            </Magnetic>
-          ))}
-        </div>
-
-        {/* 社交矩阵 */}
-        <div className="scene-block mt-8 flex flex-wrap items-center justify-center gap-4">
-          {contact.socials.map((social) => (
-            <a
-              key={social.label}
-              href={social.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-white/10 px-5 py-2 font-mono text-[10px] tracking-[0.25em] text-parchment-400 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60 hover:text-brand-400"
-            >
-              {social.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="mt-20 flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center gap-6">
-            <p className="font-mono text-xs tracking-[0.35em] text-parchment-500">
-              © {new Date().getFullYear()} 天图府 · tiantufu.com
-            </p>
-            <button
-              type="button"
-              onClick={openGate}
-              className="font-mono text-[10px] tracking-[0.3em] text-parchment-500/50 transition-colors hover:text-brand-400"
-              title="登录 / 注册成员账号（快捷键 Ctrl+Shift+A）"
-            >
-              登录 / 注册
-            </button>
-          </div>
-          <p className="font-mono text-[10px] tracking-[0.25em] text-parchment-500/60">
-            快捷键：1-6 切换页面 · Ctrl+K 搜索 · B 返回 · ? 查看
-          </p>
-        </div>
-      </div>
-    </section>
-  )
+  const copy = async (key: string, value: string) => {
+    try { await navigator.clipboard.writeText(value); setCopied(key); setFailed(false) } catch { setFailed(true) }
+  }
+  return <section ref={root} id="contact" data-scroll-root className="atlas-night editorial-page relative h-full w-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <header className="editorial-centered"><EditableText as="h1" value={ui.title} path="ui.contact.title" className="editorial-title mx-auto w-full max-w-6xl" /><EditableText as="p" value={exhibit.contactIntro} path="ui.exhibition.contactIntro" className="reading-copy" /></header>
+    <nav className="contact-actions">{entries.map((entry) => <button type="button" key={entry.key} onClick={() => requestScene(entry.index)} data-exhibit-reveal><div><span className="contact-action-en">{entry.en}</span><EditableText as="h2" value={ui[entry.key]} path={`ui.contact.${entry.key}`} /><EditableText as="p" value={ui[entry.desc]} path={`ui.contact.${entry.desc}`} className="reading-copy" /></div><span aria-hidden="true">↗</span></button>)}</nav>
+    <section className="contact-channels"><EditableText as="h2" value={exhibit.contactChannels} path="ui.exhibition.contactChannels" /><div>{channels.map((channel) => {
+      const pending = !channel.value.trim() || /^0+$/.test(channel.value) || /占位|待确认|待替换/.test(channel.note)
+      const prefix = channel.key === 'qqGroup' ? 'group' : channel.key === 'bilibili' ? 'bili' : channel.key
+      return <article key={channel.key}><EditableText as="h3" value={channel.label} path={`ui.contact.${prefix}Label`} /><EditableText as="p" value={channel.value} path={`site.contact.${channel.key}`} /><EditableText as="p" value={channel.note} path={`ui.contact.${prefix}Note`} className="contact-channel-note" />{pending ? <span className="editorial-pending">{exhibit.contactPending}</span> : <div className="contact-channel-buttons"><a href={channel.href} target={channel.key === 'bilibili' ? '_blank' : undefined} rel="noreferrer">{channel.label} ↗</a><button type="button" onClick={() => copy(channel.key, channel.value)}>{copied === channel.key ? exhibit.contactCopied : exhibit.copyContact}</button></div>}</article>
+    })}</div><p role="status" className="contact-copy-status">{failed ? exhibit.copyFailed : copied ? exhibit.contactCopied : ''}</p></section>
+    <div className="contact-socials">{contact.socials.map((social, i) => {
+      const available = /^https?:\/\//.test(social.url) && !['https://space.bilibili.com/','https://weibo.com/','https://www.xiaohongshu.com/'].includes(social.url)
+      return available ? <a key={i} href={social.url} target="_blank" rel="noreferrer"><EditableText as="span" value={social.label} path={`site.contact.socials.${i}.label`} /> ↗</a> : <span key={i}><EditableText as="span" value={social.label} path={`site.contact.socials.${i}.label`} /> · {exhibit.contactPending}</span>
+    })}</div>
+    <footer className="contact-footer"><p><EditableText as="span" value={ui.copyrightPrefix} path="ui.contact.copyrightPrefix" /> {new Date().getFullYear()} · {content.site.name}<EditableText as="span" value={ui.copyrightSuffix} path="ui.contact.copyrightSuffix" /></p><button type="button" onClick={openGate} title={ui.accountLoginHint}>{ui.accountLogin}</button><EditableText as="p" value={ui.keyboardHint} path="ui.contact.keyboardHint" /></footer>
+  </div></section>
 }

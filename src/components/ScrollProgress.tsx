@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 export default function ScrollProgress() {
   const barRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef(0)
+  const sceneRafRef = useRef(0)
   const rootRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -23,14 +24,21 @@ export default function ScrollProgress() {
       const id = (event as CustomEvent).detail?.id as string | undefined
       if (rootRef.current) rootRef.current.removeEventListener('scroll', onScroll)
       rootRef.current = null
-      if (id) {
-        const el = document.getElementById(id)
-        if (el?.classList.contains('overflow-y-auto')) {
-          rootRef.current = el
-          el.addEventListener('scroll', onScroll, { passive: true })
+      // PageStack broadcasts before React mounts the target layer. Defer the
+      // lookup one frame so the progress bar always follows the newly active
+      // page instead of remaining attached to the first page.
+      cancelAnimationFrame(sceneRafRef.current)
+      sceneRafRef.current = requestAnimationFrame(() => {
+        sceneRafRef.current = 0
+        if (id) {
+          const el = document.getElementById(id)
+          if (el?.classList.contains('overflow-y-auto')) {
+            rootRef.current = el
+            el.addEventListener('scroll', onScroll, { passive: true })
+          }
         }
-      }
-      update()
+        update()
+      })
     }
 
     window.addEventListener('ttf-scene', onScene)
@@ -42,6 +50,7 @@ export default function ScrollProgress() {
       window.removeEventListener('resize', onScroll)
       if (rootRef.current) rootRef.current.removeEventListener('scroll', onScroll)
       cancelAnimationFrame(rafRef.current)
+      cancelAnimationFrame(sceneRafRef.current)
     }
   }, [])
 

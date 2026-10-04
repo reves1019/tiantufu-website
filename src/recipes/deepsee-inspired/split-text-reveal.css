@@ -1,0 +1,4 @@
+.deepsee-split { display: inline-block; }
+.deepsee-split-char { display: inline-block; will-change: transform, opacity; }
+.deepsee-split-space { display: inline; }
+@media (prefers-reduced-motion: reduce) { .deepsee-split-char { opacity: 1 !important; transform: none !important; } }

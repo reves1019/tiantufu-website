@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { brandAssets, heroConfig } from '../config/site'
 import { useContent } from '../lib/contentStore'
 import { HOME_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
+import { FlowButton } from './ui/flow-button'
+import { SplitTextReveal } from '../recipes/deepsee-inspired/split-text-reveal/src'
 
 const SEEN_KEY = 'ttf-intro-seen'
 const CHAR_MS = 38 // 打字机每个字符间隔
@@ -18,9 +20,9 @@ const DWELL_MS = 2400 // 文本展示完成后的停留时长（放慢）
 export default function IntroSequence() {
   const { content } = useContent()
   const intro = content.intro
-  const scenes = intro.scenes
-  const maps = heroConfig.maps.srcs
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const scenes = intro.scenes.length ? intro.scenes : [{ title: content.site.name, titleEn: content.site.nameEn, text: content.site.slogan, textEn: content.site.slogan }]
+  const maps = content.media.maps
+  const [reduced, setReduced] = useState(isMotionReduced)
 
   const [phase, setPhase] = useState<'welcome' | 'story'>('welcome')
   const [chapter, setChapter] = useState(0)
@@ -28,15 +30,40 @@ export default function IntroSequence() {
   const [typing, setTyping] = useState(false)
   const [atEnd, setAtEnd] = useState(false)
   const [hidden, setHidden] = useState(false)
-  const [gone, setGone] = useState(false)
+  const [gone, setGone] = useState(() => {
+    try { return sessionStorage.getItem(SEEN_KEY) === '1' } catch { return false }
+  })
   const timersRef = useRef<number[]>([])
+  const typingTimerRef = useRef<number | null>(null)
   const ballRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const dotHoverRef = useRef<HTMLDivElement>(null)
   const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+
+  useEffect(() => {
+    const onMotionPreference = (event: Event) => setReduced(Boolean((event as CustomEvent<{ reduced?: boolean }>).detail?.reduced))
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+    return () => window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+  }, [])
+
+  // Optional replay: visiting the site never forces a long introduction.
+  useEffect(() => {
+    if (!gone) {
+      try { sessionStorage.setItem(SEEN_KEY, '1') } catch { /* storage can be unavailable in private contexts */ }
+    }
+  }, [gone])
+
+  useEffect(() => {
+    const open = () => { setPhase('welcome'); setChapter(0); setHidden(false); setGone(false) }
+    window.addEventListener('ttf-intro-open', open)
+    return () => window.removeEventListener('ttf-intro-open', open)
+  }, [])
 
   const clearTimers = () => {
     timersRef.current.forEach((id) => window.clearTimeout(id))
     timersRef.current = []
+    if (typingTimerRef.current !== null) window.clearInterval(typingTimerRef.current)
+    typingTimerRef.current = null
   }
   const later = (fn: () => void, ms: number) => {
     timersRef.current.push(window.setTimeout(fn, ms))
@@ -44,13 +71,13 @@ export default function IntroSequence() {
 
   // 自动播放时间线：打字机 → 停留 → 下一章 / 结尾按钮
   useEffect(() => {
-    if (phase !== 'story') return
+    if (phase !== 'story' || gone) return
     clearTimers()
     setTyped('')
     setAtEnd(false)
     setTyping(true)
 
-    const text = scenes[chapter].text
+    const text = scenes[Math.min(chapter, scenes.length - 1)].text
     const scheduleNext = () => {
       if (chapter === scenes.length - 1) {
         setAtEnd(true)
@@ -76,18 +103,37 @@ export default function IntroSequence() {
         later(scheduleNext, DWELL_MS)
       }
     }, CHAR_MS)
+    typingTimerRef.current = interval
 
     return () => {
       window.clearInterval(interval)
       clearTimers()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, chapter])
+  }, [phase, chapter, gone, reduced])
 
   useEffect(() => () => clearTimers(), [])
 
+  useEffect(() => {
+    if (gone) return
+    const previous = document.activeElement as HTMLElement | null
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { clearTimers(); setGone(true); return }
+      if (event.key !== 'Tab') return
+      const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
+      const first = buttons[0], last = buttons[buttons.length - 1]
+      if (!first) return
+      if (event.shiftKey && (document.activeElement === first || !dialogRef.current?.contains(document.activeElement))) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && (document.activeElement === last || !dialogRef.current?.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus() }
+  }, [gone])
+
   // 悬停按钮/链接时圆点放大，增强“复古仪器准星”感
   useEffect(() => {
+    if (gone) return
     const onOver = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       if (target.closest?.('button, a')) dotHoverRef.current?.style.setProperty('transform', 'scale(1.45)')
@@ -102,10 +148,11 @@ export default function IntroSequence() {
       window.removeEventListener('mouseover', onOver)
       window.removeEventListener('mouseout', onOut)
     }
-  }, [])
+  }, [gone])
 
   // 数码地球发光小球：跟随鼠标平滑移动（rAF 插值）
   useEffect(() => {
+    if (gone) return
     const onMove = (event: MouseEvent) => {
       mouseRef.current = { x: event.clientX, y: event.clientY }
     }
@@ -117,7 +164,7 @@ export default function IntroSequence() {
       bx += (mouseRef.current.x - bx) * 0.12
       by += (mouseRef.current.y - by) * 0.12
       if (ballRef.current) {
-        ballRef.current.style.transform = `translate3d(${bx - 28}px, ${by - 28}px, 0)`
+        ballRef.current.style.transform = `translate3d(${bx - 7}px, ${by - 7}px, 0)`
       }
       if (!reduced) raf = requestAnimationFrame(tick)
     }
@@ -126,11 +173,12 @@ export default function IntroSequence() {
       window.removeEventListener('mousemove', onMove)
       cancelAnimationFrame(raf)
     }
-  }, [reduced])
+  }, [reduced, gone])
 
-  if (sessionStorage.getItem(SEEN_KEY) === '1' || gone) return null
+  if (gone) return null
 
   const finish = (target?: number) => {
+    clearTimers()
     sessionStorage.setItem(SEEN_KEY, '1')
     setHidden(true)
     window.setTimeout(() => {
@@ -146,8 +194,11 @@ export default function IntroSequence() {
   const advance = () => {
     if (phase !== 'story' || atEnd) return
     if (typing) {
-      setTyped(scenes[chapter].text)
+      if (typingTimerRef.current !== null) window.clearInterval(typingTimerRef.current)
+      typingTimerRef.current = null
+      setTyped(scenes[Math.min(chapter, scenes.length - 1)].text)
       setTyping(false)
+      later(() => chapter < scenes.length - 1 ? setChapter((c) => c + 1) : setAtEnd(true), DWELL_MS)
     } else if (chapter < scenes.length - 1) {
       clearTimers()
       setChapter((c) => c + 1)
@@ -162,11 +213,13 @@ export default function IntroSequence() {
 
   return (
     <div
-      className={`fixed inset-0 z-[110] overflow-hidden bg-ink-950 transition-opacity duration-500 ${
+      ref={dialogRef} role="dialog" aria-modal="true" aria-label={intro.welcomeTitle}
+      className={`atlas-paper atlas-intro fixed inset-0 z-[110] overflow-hidden bg-ink-950 transition-opacity duration-500 ${
         hidden ? 'opacity-0' : 'opacity-100'
       }`}
       onClick={advance}
     >
+      {phase === 'welcome' && <button type="button" className="absolute right-6 top-6 z-40 px-4 py-3 text-sm text-parchment-200" onClick={(event) => { event.stopPropagation(); finish() }}>{intro.skipLabel} ×</button>}
       {/* 数码地球发光小球（跟随鼠标） */}
       <div
         ref={ballRef}
@@ -187,24 +240,30 @@ export default function IntroSequence() {
 
       {phase === 'welcome' ? (
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
-          <img src={brandAssets.emblemRound} alt="天图府" className="h-28 w-28 opacity-90" />
-          <h1 className="mt-8 font-display text-5xl tracking-[0.14em] text-parchment-100 sm:text-6xl sm:tracking-[0.18em] lg:text-8xl">
-            {intro.welcomeTitle}
-          </h1>
-          <p className="mt-5 font-serif-en text-sm italic tracking-[0.45em] text-parchment-400">
-            {intro.welcomeSlogan}
-          </p>
-          <button
-            type="button"
+          <div className="intro-welcome-card relative flex w-[min(720px,94vw)] flex-col items-center px-7 py-10 sm:px-14 sm:py-14">
+            <div className="intro-welcome-kicker">TIANTUFU · FIELD ARCHIVE <span>序章 / PROLOGUE</span></div>
+            <div className="intro-emblem-shell" aria-hidden="true">
+              <span className="intro-emblem-orbit" />
+              <img src={content.media.brand.emblem} alt="" className="intro-emblem-image relative z-10 h-36 w-36 object-contain sm:h-48 sm:w-48" />
+            </div>
+            <h1 className="mt-7 font-display text-5xl tracking-[0.14em] text-parchment-100 sm:text-6xl sm:tracking-[0.18em] lg:text-8xl">
+              <SplitTextReveal as="span">{intro.welcomeTitle}</SplitTextReveal>
+            </h1>
+            <p className="mt-3 font-serif-en text-[10px] tracking-[0.32em] text-brand-300 sm:text-xs">{intro.welcomeTitleEn}</p>
+            <p className="mt-6 max-w-xl font-reading text-sm leading-8 text-parchment-200 sm:text-base">{intro.welcomeSlogan}</p>
+            <p className="mt-1 font-serif-en text-[10px] tracking-[0.2em] text-parchment-500 sm:text-xs">{intro.welcomeSloganEn}</p>
+          <FlowButton
+            variant="outline"
+            text={intro.startLabelEn}
             onClick={(event) => {
               event.stopPropagation()
               setPhase('story')
               setChapter(0)
             }}
-            className="mt-14 rounded-full border border-white/40 px-14 py-4 text-sm tracking-[0.3em] text-parchment-100 transition-all duration-300 hover:border-brand-400 hover:text-brand-400"
-          >
-            {intro.startLabel}
-          </button>
+            className="mt-10 px-14 py-4 text-sm tracking-[0.3em]"
+          />
+            <span className="mt-3 font-mono text-[9px] tracking-[0.24em] text-parchment-500">{intro.startLabelEn}</span>
+          </div>
         </div>
       ) : (
         <div className="relative z-10 h-full">
@@ -212,15 +271,14 @@ export default function IntroSequence() {
           {scenes.map((_, i) => (
             <img
               key={i}
-              src={maps[i % maps.length]}
+              src={maps[i % (maps.length || 1)]}
               alt=""
               className={`intro-map-zoom absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
                 i === chapter ? 'opacity-45' : 'opacity-0'
               }`}
             />
           ))}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(7,9,13,0.35)_0%,rgba(7,9,13,0.82)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_82%_18%,rgba(199,27,27,0.12)_0%,transparent_45%)]" />
+          <div className="atlas-intro-shade absolute inset-0" />
 
           {/* 跳过 */}
           <button
@@ -234,39 +292,45 @@ export default function IntroSequence() {
             {intro.skipLabel} »
           </button>
 
-          {/* 右侧说明卡：打字机逐字弹出 */}
+          {/* 底部叙事台：地图保持连续展开，文本在画面下方逐字出现 */}
           <div
             key={chapter}
-            className="pointer-events-none absolute right-6 top-1/2 z-20 w-[min(390px,82vw)] -translate-y-1/2 sm:right-[6%] sm:w-[min(390px,36vw)]"
+            className="intro-copy-shell intro-story-dock pointer-events-none absolute inset-x-0 bottom-16 z-20 mx-auto w-[min(880px,90vw)] px-5 sm:bottom-20"
           >
-            <div className="intro-line rounded-xl border border-white/10 bg-ink-950/75 p-7 shadow-[0_0_46px_rgba(199,27,27,0.2)] backdrop-blur-xl">
-              <p className="font-mono text-[10px] tracking-[0.5em] text-brand-400">
-                {String(chapter + 1).padStart(2, '0')} / {String(scenes.length).padStart(2, '0')}
-              </p>
-              <h2 className="mt-3 font-display text-3xl tracking-[0.14em] text-parchment-100">
-                {current.title}
+            <div className="intro-line intro-story-panel">
+              <div className="intro-story-rule" aria-hidden="true" />
+              <div className="intro-story-meta">
+                <span>{String(chapter + 1).padStart(2, '0')} / {String(scenes.length).padStart(2, '0')}</span>
+                <span>TIANTUFU FIELD NOTE</span>
+              </div>
+              <h2 className="mt-3 font-display text-3xl tracking-[0.14em] text-parchment-100 sm:text-4xl">
+                <SplitTextReveal as="span" key={`${chapter}-title`}>{current.title}</SplitTextReveal>
               </h2>
-              <p className="mt-4 min-h-[6em] text-sm leading-relaxed text-parchment-300">
+              <p className="mt-2 font-serif-en text-[10px] tracking-[0.24em] text-brand-300 sm:text-xs">{current.titleEn ?? 'TIANTUFU ARCHIVE'}</p>
+              <p className="mt-4 min-h-[4.5em] max-w-3xl text-sm leading-8 text-parchment-200 sm:text-base">
                 {typed}
                 {typing && (
                   <span className="ml-1 inline-block h-4 w-[2px] animate-pulse bg-brand-400 align-middle" />
                 )}
               </p>
+              <p className="mt-2 max-w-2xl font-serif-en text-[11px] leading-6 text-parchment-400">{current.textEn ?? ''}</p>
             </div>
 
             {/* 最后一章：进入首页 */}
             {atEnd && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  finish(HOME_INDEX)
-                }}
-                className="intro-line pointer-events-auto mt-5 w-full rounded-md bg-brand-500 px-8 py-3.5 text-sm tracking-[0.25em] text-white shadow-[0_0_36px_rgba(199,27,27,0.45)] transition-all duration-300 hover:bg-brand-600"
-                style={{ animationDelay: '0.15s' }}
-              >
-                {intro.enterHomeLabel}
-              </button>
+              <>
+                <FlowButton
+                  variant="solid"
+                  text={intro.enterHomeLabelEn}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    finish(HOME_INDEX)
+                  }}
+                  className="intro-line pointer-events-auto mt-5 w-full rounded-full px-8 py-3.5 text-sm tracking-[0.25em] shadow-[0_0_36px_rgba(199,27,27,0.45)] sm:w-auto sm:min-w-[300px]"
+                  style={{ animationDelay: '0.15s' }}
+                />
+                <p className="mt-2 text-center font-mono text-[9px] tracking-[0.22em] text-parchment-500">{intro.enterHomeLabelEn}</p>
+              </>
             )}
           </div>
 
@@ -279,7 +343,7 @@ export default function IntroSequence() {
               {scenes.map((_, i) => (
                 <span
                   key={i}
-                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                  className={`h-1.5 rounded-full transition-[width,background-color] duration-500 ${
                     i === chapter ? 'w-7 bg-brand-500' : 'w-1.5 bg-white/25'
                   }`}
                 />

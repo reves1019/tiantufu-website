@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
 
 /**
  * 长页滚动显现：
@@ -8,8 +9,7 @@ import { useEffect } from 'react'
  */
 export default function RevealObserver() {
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) return
+    let reduced = isMotionReduced()
 
     const observers = new Map<Element, IntersectionObserver>()
     const seen = new WeakSet<Element>()
@@ -43,16 +43,44 @@ export default function RevealObserver() {
       targets.forEach((el) => observer.observe(el))
     }
 
+    let observeFrame = 0
     const onScene = (event: Event) => {
       const id = (event as CustomEvent).detail?.id as string | undefined
       disconnectAll()
       if (!id) return
+
       const root = document.getElementById(id)
-      if (root?.hasAttribute('data-scroll-root')) observeRoot(root)
+      if (reduced) {
+        root?.querySelectorAll<HTMLElement>('[data-reveal], .scene-block').forEach((el) => {
+          el.classList.add('is-visible')
+          el.style.transitionDelay = '0ms'
+        })
+        return
+      }
+
+      // PageStack publishes the destination before React mounts its route layer.
+      // Defer one frame so direct routes and freshly mounted hidden pages are observed.
+      cancelAnimationFrame(observeFrame)
+      observeFrame = requestAnimationFrame(() => {
+        const nextRoot = document.getElementById(id)
+        if (nextRoot?.hasAttribute('data-scroll-root')) observeRoot(nextRoot)
+      })
+    }
+
+    const onMotionPreference = (event: Event) => {
+      reduced = Boolean((event as CustomEvent<{ reduced?: boolean }>).detail?.reduced)
+      const id = document.documentElement.dataset.page
+      if (id) onScene(new CustomEvent('ttf-scene', { detail: { id } }))
     }
 
     window.addEventListener('ttf-scene', onScene)
-    onScene(new CustomEvent('ttf-scene', { detail: { id: 'home' } }))
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+    const initialId = window.location.hash.replace(/^#\/?/, '')
+    onScene(
+      new CustomEvent('ttf-scene', {
+        detail: { id: initialId && document.getElementById(initialId) ? initialId : 'home' },
+      }),
+    )
 
     // 管理员新增/编辑内容后，补齐观察新出现的显现块
     const mo = new MutationObserver(() => {
@@ -70,6 +98,8 @@ export default function RevealObserver() {
 
     return () => {
       window.removeEventListener('ttf-scene', onScene)
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+      cancelAnimationFrame(observeFrame)
       mo.disconnect()
       disconnectAll()
     }

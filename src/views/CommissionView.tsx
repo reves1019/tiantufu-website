@@ -3,19 +3,21 @@ import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { CONTACT_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { CreativeButton, CreativeButtonLink } from '../components/ui/creative-button'
 
 /** 约稿服务：流程 4 步 / 委托须知 / 价格参考 / 联系入口 */
 export default function CommissionView() {
   const { content } = useContent()
   const commission = content.commission
   const contact = content.site.contact
+  const ui = content.ui.commission
 
   return (
     <section id="commission" data-scroll-root className="relative h-full w-full overflow-y-auto">
       <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
         <div className="scene-block flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-xs tracking-[0.5em] text-brand-400">COMMISSION · 约稿服务</p>
+            <EditableText as="p" value={ui.kicker} path="ui.commission.kicker" className="font-mono text-xs tracking-[0.5em] text-brand-400" />
             <EditableText
               as="h1"
               value={commission.title}
@@ -29,13 +31,11 @@ export default function CommissionView() {
               className="mt-2 text-sm tracking-[0.2em] text-parchment-400"
             />
           </div>
-          <button
-            type="button"
+          <CreativeButton
+            direction="top"
+            text={<EditableText as="span" value={ui.backContact} path="ui.commission.backContact" />}
             onClick={() => requestScene(CONTACT_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-6 py-2.5 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            ← 返回联系
-          </button>
+          />
         </div>
 
         <EditableText
@@ -77,7 +77,7 @@ export default function CommissionView() {
             <EditableText as="p" multiline value={commission.notes} path="commission.notes" className="mt-3 text-sm leading-relaxed text-parchment-300" />
           </div>
           <div className="rounded-lg border border-white/10 bg-ink-950/45 p-6 backdrop-blur-sm">
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">价格参考</p>
+            <EditableText as="p" value={ui.priceTitle} path="ui.commission.priceTitle" className="font-mono text-xs tracking-[0.35em] text-brand-400" />
             <EditableText as="p" multiline value={commission.priceNote} path="commission.priceNote" className="mt-3 text-sm leading-relaxed text-parchment-300" />
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {(commission.priceTable ?? []).map((row, i) => (
@@ -93,14 +93,10 @@ export default function CommissionView() {
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
               <Magnetic>
-                <a href={`tencent://message/?uin=${contact.qq}`} className="btn-sheen rounded-md bg-brand-500 px-6 py-2.5 text-xs tracking-[0.2em] text-white transition-colors hover:bg-brand-600">
-                  QQ 咨询
-                </a>
+                <CreativeButtonLink text={<EditableText as="span" value={ui.qqConsult} path="ui.commission.qqConsult" />} href={`tencent://message/?uin=${contact.qq}`} />
               </Magnetic>
               <Magnetic>
-                <a href={`mailto:${contact.email}`} className="rounded-md border border-white/15 px-6 py-2.5 text-xs tracking-[0.2em] text-parchment-100 transition-colors hover:border-brand-500/60 hover:text-brand-400">
-                  邮件咨询
-                </a>
+                <CreativeButtonLink text={<EditableText as="span" value={ui.emailConsult} path="ui.commission.emailConsult" />} href={`mailto:${contact.email}`} />
               </Magnetic>
             </div>
           </div>

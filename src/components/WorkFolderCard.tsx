@@ -25,7 +25,7 @@ export default function WorkFolderCard({ member, memberIndex, onClick }: WorkFol
       {/* 悬停时浮现的作者头像（卡片上方） */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-16 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 opacity-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-1 group-hover:opacity-100"
+        className="pointer-events-none absolute -top-16 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 opacity-0 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-1 group-hover:opacity-100"
       >
         <img
           src={member.avatar}
@@ -52,7 +52,7 @@ export default function WorkFolderCard({ member, memberIndex, onClick }: WorkFol
           <img src={member.work.image} alt="" loading="lazy" className="h-full w-full object-cover brightness-[0.7]" draggable={false} />
         </div>
         {/* 顶层作品（默认微倾，悬停抽出扶正放大） */}
-        <div className="absolute inset-0 -rotate-[1deg] overflow-hidden rounded-lg border border-white/15 bg-ink-900 shadow-[0_18px_44px_rgba(0,0,0,0.55)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-x-2 group-hover:-translate-y-4 group-hover:rotate-0 group-hover:scale-[1.04]">
+        <div className="absolute inset-0 -rotate-[1deg] overflow-hidden rounded-lg border border-white/15 bg-ink-900 shadow-[0_18px_44px_rgba(0,0,0,0.55)] transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-x-2 group-hover:-translate-y-4 group-hover:rotate-0 group-hover:scale-[1.04]">
           <img
             src={member.work.image}
             alt={member.work.title}

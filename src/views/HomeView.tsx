@@ -1,204 +1,153 @@
-import { useState } from 'react'
-import GlobeDome from '../components/GlobeDome'
-import LetterSwap from '../components/LetterSwap'
-import Magnetic from '../components/Magnetic'
+import { useMemo, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import EditableText from '../components/admin/EditableText'
-import { heroConfig } from '../config/site'
+import Lightbox from '../components/Lightbox'
 import { useContent } from '../lib/contentStore'
-import { ABOUT_INDEX, JOIN_INDEX, MEMBER_INDEX, NEWS_INDEX, WORKS_INDEX } from '../lib/pages'
+import { ABOUT_INDEX, EARTH_INDEX, JOIN_INDEX, MEMBER_INDEX, TOPIC_INDEX, WORKS_INDEX } from '../lib/pages'
+import { isMemberPublished } from '../lib/publicCatalog'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
 import { setActiveMemberId } from '../lib/memberBus'
+import { setActiveTopicId } from '../lib/topicBus'
 import { requestScene } from '../lib/sceneBus'
+import { catalogueImage } from '../lib/catalogueImage'
+import { CircularGallery } from '../components/ui/circular-gallery'
+import { FlowButton } from '../components/ui/flow-button'
+import ScrollBaseAnimation from '../components/ui/scroll-text-marquee'
+import { ReviewMarquee, type ReviewMarqueeItem } from '../components/ui/review-marquee'
+import { MapBadgeWindow } from '../components/ui/map-badge-window'
+import { brandAssets, heroConfig } from '../config/site'
+import ImageTrail from '../components/ImageTrail'
+import { clearSpotlight, updateSpotlight } from '../components/Spotlight'
+import ScrollAnimation from '../components/ui/scroll-animation'
+
+gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 export default function HomeView() {
   const { content, admin } = useContent()
-  const [videoEnded, setVideoEnded] = useState(false)
+  const root = useRef<HTMLElement>(null)
+  const [reading, setReading] = useState<number | null>(null)
+  const [topicId, setTopicId] = useState(content.topics[0]?.id ?? '')
+  const [authorIndex, setAuthorIndex] = useState(0)
+  const maps = useMemo(() => exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative), [content.worksArchive, content.members, content.ui.member.representative])
+  const authors = useMemo(() => content.members.filter(isMemberPublished), [content.members])
+  const author = authors[Math.min(authorIndex, authors.length - 1)]
+  const reviewItems: ReviewMarqueeItem[] = useMemo(() => authors.map((member, index) => ({
+    id: member.id,
+    name: member.name,
+    role: member.role,
+    avatar: member.avatar,
+    index: `FIELD NOTE / ${String(index + 1).padStart(2, '0')}`,
+    body: member.signature?.trim() || (member.bio && !member.bio.includes('占位') ? member.bio : '从一条经线开始，记录一段仍在展开的山河。'),
+  })), [authors])
+  const ui = content.ui.exhibition
+  const images = maps.map(catalogueImage)
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement
-    if (target.closest('button, a')) return
-    requestScene(ABOUT_INDEX)
-  }
+  useGSAP(() => {
+    if (admin || !root.current) return
+    const media = gsap.matchMedia()
+    media.add('(min-width: 768px) and (prefers-reduced-motion: no-preference)', () => {
+      gsap.utils.toArray<HTMLElement>('.exhibit-hero-map .exhibit-map-cover, .circular-gallery', root.current).forEach((image) => {
+        gsap.fromTo(image, { y: 24, opacity: .6 }, { y: 0, opacity: 1, ease: 'none', scrollTrigger: {
+          trigger: image, scroller: root.current, start: 'top 92%', end: 'top 45%', scrub: .6,
+        } })
+      })
+      gsap.fromTo('.exhibit-manifesto span', { opacity: .3 }, { opacity: 1, stagger: .15, ease: 'none', scrollTrigger: {
+        trigger: '.exhibit-manifesto', scroller: root.current, start: 'top 88%', end: 'top 45%', scrub: .6,
+      } })
+    })
+    return () => media.revert()
+  }, { scope: root, dependencies: [maps.length, admin], revertOnUpdate: true })
 
-  return (
-    <section
-      id="home"
-      onClick={handleClick}
-      className="relative flex h-full w-full cursor-pointer flex-col items-center justify-center overflow-hidden"
-    >
-      {/* 片头视频（入场动画，只播一次后淡出） */}
-      {heroConfig.video.enabled && (
-        <video
-          className="absolute inset-0 z-[1] h-full w-full object-cover"
-          style={{
-            opacity: videoEnded ? 0 : heroConfig.video.opacity,
-            transition: 'opacity 1500ms ease',
-          }}
-          src={heroConfig.video.src}
-          autoPlay
-          muted
-          loop={heroConfig.video.loop}
-          playsInline
-          preload="metadata"
-          aria-hidden="true"
-          onEnded={() => {
-            if (heroConfig.video.fadeOutOnEnd) setVideoEnded(true)
-          }}
-          onError={(event) => {
-            event.currentTarget.style.display = 'none'
-          }}
-        />
-      )}
+  const openTopic = (id: string) => { setActiveTopicId(id); requestScene(TOPIC_INDEX) }
+  return <section ref={root} id="home" className="exhibit-page relative h-full w-full overflow-y-auto overflow-x-hidden" data-scroll-root>
+    <div className="exhibit-container">
+      <header className="exhibit-hero">
+        <ScrollAnimation direction="left" viewport={{ amount: 0.3, margin: '0px 0px -8% 0px' }} disabled={admin}>
+          <EditableText as="h1" value={ui.title} path="ui.exhibition.title" multiline className="exhibit-title mx-auto w-full max-w-6xl" />
+        </ScrollAnimation>
+        <ScrollAnimation direction="left" viewport={{ amount: 0.3, margin: '0px 0px -8% 0px' }} disabled={admin}>
+          <EditableText as="p" value={ui.intro} path="ui.exhibition.intro" multiline className="exhibit-intro" />
+        </ScrollAnimation>
+        <ScrollAnimation direction="up" viewport={{ amount: 0.25 }} disabled={admin}>
+          <div className="exhibit-actions">
+            <FlowButton variant="solid" text="EXPLORE MAPS" aria-label={content.ui.home.primaryCta} onClick={() => requestScene(WORKS_INDEX)} />
+            <FlowButton text="ABOUT TIANTUFU" aria-label={content.ui.home.aboutLabel} onClick={() => requestScene(ABOUT_INDEX)} />
+          </div>
+        </ScrollAnimation>
+        {maps[0] ? <figure className="exhibit-hero-map">
+          <button type="button" className="exhibit-map-cover" aria-label={ui.readMap + '：' + maps[0].work.title} onClick={() => setReading(0)}>
+            <img src={maps[0].work.image} alt={maps[0].work.title} loading="eager" decoding="async" />
+            <span className="exhibit-image-action">{ui.readMap} ↗</span>
+          </button>
+          <figcaption><span>{maps[0].work.title}</span><span className="exhibit-map-meta">NO.01 · {maps[0].work.year ?? maps[0].work.category} · {maps[0].work.author}</span></figcaption>
+        </figure> : <p className="exhibit-empty">{ui.empty}</p>}
+      </header>
 
-      {/* 星球穹顶 */}
-      <GlobeDome className="top-[45%] z-[3] w-[min(1500px,95vw)]" />
+      {maps[0] && <MapBadgeWindow
+        mapSrc={content.media.maps[0] ?? heroConfig.maps.srcs[0]}
+        badgeSrc={brandAssets.badgeWindow}
+        label={ui.badgeWindow.label}
+        meta={ui.badgeWindow.eyebrow}
+        footerLabel={ui.badgeWindow.footer}
+        footerHint={ui.badgeWindow.scrollHint}
+        coordinate={ui.badgeWindow.coordinate}
+        pauseLabel={ui.badgeWindow.pause}
+        resumeLabel={ui.badgeWindow.resume}
+      />}
 
-      {/* 标题区（Shopify 式滑入） */}
-      <div className="relative z-10 mx-auto flex max-w-[1700px] flex-col items-center px-6 pb-44 pt-24 text-center md:pb-40">
-        {admin ? (
-          <EditableText
-            as="h1"
-            value={content.site.name}
-            path="site.name"
-            className="scene-block w-[min(80vw,1100px)] text-center font-display text-[clamp(76px,11vw,150px)] font-medium leading-none tracking-[0.14em] text-parchment-100"
-          />
-        ) : (
-          <LetterSwap
-            as="h1"
-            text={content.site.name}
-            className="scene-block font-display text-[clamp(76px,11vw,150px)] font-medium leading-none tracking-[0.14em] text-parchment-100"
-          />
-        )}
-        <p className="scene-block mt-5 font-serif-en text-sm italic tracking-[0.45em] text-parchment-400 md:text-base">
-          {content.ui.home.nameEn}
-        </p>
-        <div className="scene-block mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Magnetic>
-            <button
-              type="button"
-              onClick={() => requestScene(ABOUT_INDEX)}
-              className="btn-sheen inline-block rounded-md bg-brand-500 px-12 py-4 text-sm tracking-[0.22em] text-white shadow-[0_0_36px_rgba(255,143,163,0.4)] transition-all duration-300 hover:bg-brand-600 hover:shadow-[0_0_52px_rgba(255,143,163,0.6)]"
-            >
-              {content.ui.home.primaryCta}
-            </button>
-          </Magnetic>
-          <Magnetic>
-            <button
-              type="button"
-              onClick={() => requestScene(JOIN_INDEX)}
-              className="inline-block rounded-md border border-white/25 bg-ink-950/40 px-10 py-4 text-sm tracking-[0.22em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-400 hover:text-brand-400"
-            >
-              {content.ui.home.secondaryCta}
-            </button>
-          </Magnetic>
+      <section className="exhibit-marquee" aria-label="地图叙事关键词">
+        <ScrollBaseAnimation baseVelocity={-2.2} delay={350} label="历史疆域 · 复古地图 · 架空叙事 · 世界构建 · HISTORICAL FRONTIERS · VINTAGE CARTOGRAPHY · FICTIONAL NARRATIVES · WORLD BUILDING">历史疆域 · 复古地图 · 架空叙事 · 世界构建 · HISTORICAL FRONTIERS · VINTAGE CARTOGRAPHY · FICTIONAL NARRATIVES · WORLD BUILDING</ScrollBaseAnimation>
+        <ScrollBaseAnimation baseVelocity={1.7} delay={700} className="exhibit-marquee-secondary" label="沿经纬阅读山河 · 让每一幅地图继续讲述 · READ THE LAND · LET EVERY MAP TELL ITS STORY">沿经纬阅读山河 · 让每一幅地图继续讲述 · READ THE LAND · LET EVERY MAP TELL ITS STORY</ScrollBaseAnimation>
+      </section>
+
+      <ScrollAnimation direction="left" viewport={{ amount: 0.2 }} disabled={admin}>
+      <section className="exhibit-chapter" aria-label={ui.featuredTitle}>
+        <div className="exhibit-heading"><EditableText as="h2" value={ui.featuredTitle} path="ui.exhibition.featuredTitle" /><button type="button" onClick={() => requestScene(EARTH_INDEX)}>{ui.explore} ↗</button></div>
+        <CircularGallery variant="accordion" items={maps.slice(0, 8).map(({ work }) => ({ id: work.id, common: work.title, binomial: work.category, photo: { url: work.image, text: work.title, by: work.author } }))} labels={ui.circularGallery} autoRotateSpeed={admin || reading !== null ? 0 : 3} onSelect={setReading} />
+      </section>
+      </ScrollAnimation>
+
+      <ScrollAnimation direction="right" viewport={{ amount: 0.16 }} disabled={admin}>
+      <section className="exhibit-chapter" aria-label={ui.themesTitle}>
+        <div className="exhibit-heading"><EditableText as="h2" value={ui.themesTitle} path="ui.exhibition.themesTitle" /></div>
+        <div className="exhibit-topics">
+          {content.topics.map((topic, index) => {
+            const cover = maps.find(({ member, work }) => (work.topic || member?.topic) === topic.id)
+            const selected = topicId === topic.id
+            return <article key={topic.id} className={`${selected ? 'is-active ' : ''}spotlight-surface`} onMouseEnter={() => setTopicId(topic.id)} onFocus={() => setTopicId(topic.id)} onPointerMove={updateSpotlight} onPointerLeave={clearSpotlight}>
+              <button type="button" className="exhibit-topic-cover" onClick={() => openTopic(topic.id)} aria-label={ui.explore + '：' + topic.name}>
+                {cover && <img src={cover.work.image} alt="" loading="lazy" />}<span>{topic.name} ↗</span>
+              </button>
+              <EditableText as="h3" value={topic.name} path={'topics.' + index + '.name'} />
+              <EditableText as="p" value={topic.desc} path={'topics.' + index + '.desc'} multiline />
+            </article>
+          })}
         </div>
-      </div>
+      </section>
+      </ScrollAnimation>
 
-      {/* 内容预览入口：精选作品 + 最新动态（QmlmReader 门户首页启发） */}
-      <div
-        onClick={(event) => event.stopPropagation()}
-        className="absolute inset-x-0 bottom-0 z-10 mx-auto w-full max-w-[1700px] px-4 pb-4 sm:px-6 lg:px-10 lg:pb-6"
-      >
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-4 rounded-xl border border-white/10 bg-ink-950/55 p-4 shadow-[0_0_40px_rgba(0,0,0,0.45)] backdrop-blur-xl md:flex-row md:items-center md:justify-between md:gap-6">
-          {/* 精选作品缩略图 */}
-          <div className="flex items-center gap-3">
-            <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400 md:block">
-              {content.ui.home.previewTitle}
-            </span>
-            <div className="flex items-center gap-2">
-              {content.members.slice(0, 3).map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveMemberId(member.id)
-                    requestScene(MEMBER_INDEX)
-                  }}
-                  title={member.work.title}
-                  className="group relative h-12 w-[72px] overflow-hidden rounded-md border border-white/10 transition-all duration-300 hover:border-brand-500/60 hover:shadow-[0_0_18px_rgba(199,27,27,0.35)] md:w-20"
-                >
-                  <img
-                    src={member.work.image}
-                    alt={member.work.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-1 pb-0.5 pt-3 text-left font-mono text-[8px] tracking-[0.08em] text-parchment-200">
-                    {member.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => requestScene(WORKS_INDEX)}
-              className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors hover:text-brand-400 lg:block"
-            >
-              {content.ui.home.viewWorks}
-            </button>
-          </div>
-
-          {/* 最新动态（桌面） */}
-          <div className="hidden min-w-0 flex-1 items-center gap-4 border-l border-white/10 pl-4 md:flex">
-            <span className="shrink-0 font-mono text-[10px] tracking-[0.3em] text-brand-400">
-              {content.ui.home.newsTitle}
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              {content.about.news.slice(0, 2).map((item) => (
-                <button
-                  key={item.title}
-                  type="button"
-                  onClick={() => requestScene(NEWS_INDEX)}
-                  className="truncate text-left font-mono text-[10px] tracking-[0.12em] text-parchment-300 transition-colors hover:text-brand-400"
-                >
-                  <span className="text-brand-400/80">{item.date}</span> · {item.title}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => requestScene(NEWS_INDEX)}
-              className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors hover:text-brand-400"
-            >
-              {content.ui.home.viewNews}
-            </button>
-          </div>
-
-          {/* 移动端：1 张缩略图 + 1 条动态 */}
-          <div className="flex min-w-0 items-center gap-3 md:hidden">
-            <button
-              type="button"
-              onClick={() => {
-                const first = content.members[0]
-                if (first) {
-                  setActiveMemberId(first.id)
-                  requestScene(MEMBER_INDEX)
-                }
-              }}
-              className="h-10 w-16 shrink-0 overflow-hidden rounded-md border border-white/10"
-            >
-              {content.members[0] && (
-                <img src={content.members[0].work.image} alt="" loading="lazy" className="h-full w-full object-cover" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => requestScene(NEWS_INDEX)}
-              className="min-w-0 flex-1 truncate text-left font-mono text-[10px] tracking-[0.12em] text-parchment-300"
-            >
-              {content.about.news[0]
-                ? `${content.about.news[0].date} · ${content.about.news[0].title}`
-                : '最新动态（占位）'}
-            </button>
-            <button
-              type="button"
-              onClick={() => requestScene(WORKS_INDEX)}
-              className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-brand-400"
-            >
-              {content.ui.home.worksShort}
-            </button>
-          </div>
+      {author && <ScrollAnimation direction="up" viewport={{ amount: 0.16 }} disabled={admin}><section className="exhibit-chapter exhibit-author" aria-label={ui.authorsTitle}>
+        <div><EditableText as="h2" value={ui.authorsTitle} path="ui.exhibition.authorsTitle" />
+          <div className="exhibit-portraits">{authors.map((person, index) => <button key={person.id} type="button" aria-label={person.name} aria-pressed={authorIndex === index} onClick={() => setAuthorIndex(index)}><img src={person.avatar} alt={person.name} loading="lazy" /></button>)}</div>
         </div>
-      </div>
-    </section>
-  )
+        <div><h3>{author.name}</h3><p>{author.role}</p><button type="button" className="exhibit-text-link" onClick={() => { setActiveMemberId(author.id); requestScene(MEMBER_INDEX) }}>{ui.authorPage} ↗</button></div>
+      </section></ScrollAnimation>}
+      {reviewItems.length > 0 && <ScrollAnimation direction="right" viewport={{ amount: 0.14 }} disabled={admin}><section className="exhibit-chapter exhibit-voices" aria-label="制图者手记">
+        <div className="exhibit-heading"><h2>制图者手记</h2><span className="exhibit-map-meta">FIELD NOTES · {String(reviewItems.length).padStart(2, '0')}</span></div>
+        <div className="exhibit-voices-stage">
+          <ReviewMarquee items={reviewItems} />
+          <ImageTrail images={maps.slice(0, 5).map(({ work }) => work.image)} size={86} max={9} />
+        </div>
+      </section></ScrollAnimation>}
+      <ScrollAnimation direction="up" viewport={{ amount: 0.12 }} disabled={admin}><footer className="exhibit-chapter exhibit-footer">
+        <p className="exhibit-manifesto">{ui.manifesto.split('，').map((phrase, index) => <span key={index}>{phrase}{index < ui.manifesto.split('，').length - 1 ? '，' : ''}</span>)}</p>
+        <FlowButton variant="solid" text="JOIN THE HOUSE" aria-label={content.ui.home.secondaryCta} onClick={() => requestScene(JOIN_INDEX)} />
+        <button type="button" className="exhibit-text-link" onClick={() => window.dispatchEvent(new Event('ttf-intro-open'))}>{ui.watchIntro}</button>
+        <div className="exhibit-colophon"><img src={content.media.brand.emblem} alt="" loading="lazy" /><span>{content.site.name} · {content.site.slogan}</span></div>
+      </footer></ScrollAnimation>
+    </div>
+    {reading !== null && images[reading] && <Lightbox images={images} index={reading} onIndexChange={setReading} onClose={() => setReading(null)} />}
+  </section>
 }

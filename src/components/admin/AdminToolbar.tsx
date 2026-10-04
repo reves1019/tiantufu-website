@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useContent } from '../../lib/contentStore'
 import CredentialsModal from './CredentialsModal'
+import AccountProfileModal from './AccountProfileModal'
 
 /** 管理员工具栏：内容管理 / 账号审核 / 导出 / 导入 / 恢复默认 / 修改密码 / 退出 */
 export default function AdminToolbar() {
@@ -12,22 +13,34 @@ export default function AdminToolbar() {
     importJson,
     reset,
     saveState,
+    accountSaveState,
     saveError,
     clearSaveError,
     hydrated,
+    accountsReady,
     accounts,
+    cloudMode,
+    cloudSyncState,
   } = useContent()
   const fileRef = useRef<HTMLInputElement>(null)
   const [credOpen, setCredOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   if (!admin) return null
 
   const handleImport = (file: File) => {
     const reader = new FileReader()
     reader.onload = () => {
-      const ok = importJson(String(reader.result ?? ''))
-      window.alert(ok ? '导入成功，内容已更新' : '导入失败：JSON 格式不正确')
+      void (async () => {
+        try {
+          const result = await importJson(String(reader.result ?? ''))
+          window.alert(result.ok ? '导入并保存成功，页面内容已更新' : `导入失败：${result.error ?? '请检查 JSON 文件'}`)
+        } catch {
+          window.alert('导入失败：浏览器存储未能确认写入，原有内容保持不变')
+        }
+      })()
     }
+    reader.onerror = () => window.alert('文件读取失败，请重新选择 JSON 文件')
     reader.readAsText(file)
   }
 
@@ -42,8 +55,21 @@ export default function AdminToolbar() {
   }
 
   const pendingCount = accounts.filter((a) => a.role === 'member' && a.status === 'pending').length
-  const statusText =
-    saveState === 'error'
+  const statusText = cloudMode
+    ? cloudSyncState === 'ready'
+      ? saveState === 'saving'
+        ? '正在同步…'
+        : saveState === 'error'
+          ? '云端保存失败'
+          : '云端已同步'
+      : cloudSyncState === 'conflict'
+        ? '云端版本冲突 · 草稿已保留'
+        : cloudSyncState === 'uninitialized'
+        ? '等待首次同步'
+        : cloudSyncState === 'error'
+          ? '云端连接异常'
+          : '连接云端…'
+    : saveState === 'error'
       ? '保存失败'
       : saveState === 'saving'
         ? '保存中…'
@@ -52,11 +78,19 @@ export default function AdminToolbar() {
           : hydrated
             ? '就绪'
             : '加载中…'
+  const accountStatusText =
+    accountSaveState === 'error'
+      ? '账号存储失败'
+      : accountSaveState === 'saving'
+        ? '账号保存中…'
+          : accountSaveState === 'saved'
+          ? cloudMode ? '云端账号已就绪' : '账号已保存'
+          : '账号加载中…'
 
-  const btnCls = 'font-mono text-[11px] tracking-[0.2em] text-parchment-300 transition-colors hover:text-brand-400'
+  const btnCls = 'font-mono text-[11px] tracking-[0.2em] text-parchment-300 transition-colors hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-45'
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-[70] flex max-w-[98vw] -translate-x-1/2 flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-2xl border border-brand-500/40 bg-ink-950/92 px-6 py-2.5 shadow-[0_0_32px_rgba(199,27,27,0.35)] backdrop-blur-xl">
+    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[70] mx-auto flex max-h-[30dvh] max-w-[1200px] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 overflow-y-auto border border-brand-500/35 bg-ink-950/96 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.46)] backdrop-blur-md sm:bottom-5 sm:inset-x-auto sm:w-max sm:rounded-md sm:px-5">
       <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] text-brand-400">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
         管理员模式 · @{account?.username ?? ''}
@@ -66,9 +100,15 @@ export default function AdminToolbar() {
         className={`font-mono text-[10px] tracking-[0.15em] ${
           saveState === 'error' ? 'text-brand-400' : 'text-parchment-500'
         }`}
-        title="修改会实时保存到浏览器（IndexedDB），刷新后仍然保留"
+        title={cloudMode ? '内容变更由 Supabase 实时同步，并保留本机缓存' : '修改会实时保存到浏览器（IndexedDB），刷新后仍然保留'}
       >
         {statusText}
+      </span>
+      <span
+        className={`font-mono text-[10px] tracking-[0.12em] ${accountSaveState === 'error' ? 'text-brand-400' : 'text-parchment-500'}`}
+        title={cloudMode ? '账号与审核状态来自 Supabase' : '账号资料保存在本机浏览器；多设备实时协作需要服务端同步'}
+      >
+        {accountStatusText}
       </span>
       {saveError && (
         <span className="flex items-center gap-2 rounded-full border border-brand-500/60 bg-brand-500/15 px-3 py-1 font-mono text-[10px] tracking-[0.15em] text-brand-400">
@@ -82,23 +122,28 @@ export default function AdminToolbar() {
       <button
         type="button"
         onClick={() => window.dispatchEvent(new CustomEvent('ttf-content-manager-open'))}
+        disabled={!hydrated}
         className={btnCls}
       >
-        内容管理
+        {hydrated ? '内容管理' : '内容加载中…'}
       </button>
       <span className="hidden h-4 w-px bg-white/15 sm:block" />
       <button
         type="button"
         onClick={() => window.dispatchEvent(new CustomEvent('ttf-accounts-manager-open'))}
+        disabled={!hydrated || !accountsReady}
         className={btnCls}
       >
-        账号管理{pendingCount > 0 ? `（待审 ${pendingCount}）` : ''}
+        {hydrated && accountsReady ? `账号管理${pendingCount > 0 ? `（待审 ${pendingCount}）` : ''}` : '账号加载中…'}
       </button>
       <span className="hidden h-4 w-px bg-white/15 sm:block" />
-      <button type="button" onClick={handleExport} className={btnCls}>
+      <button type="button" onClick={handleExport} disabled={!hydrated} className={btnCls}>
         导出 JSON
       </button>
-      <button type="button" onClick={() => fileRef.current?.click()} className={btnCls}>
+      <button type="button" onClick={() => setProfileOpen(true)} disabled={!accountsReady || !hydrated} className={btnCls}>
+        账号资料
+      </button>
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={!hydrated} className={btnCls}>
         导入 JSON
       </button>
       <input
@@ -115,13 +160,14 @@ export default function AdminToolbar() {
       <button
         type="button"
         onClick={() => {
-          if (window.confirm('恢复为默认内容？当前修改将丢失（可先导出 JSON 备份）。')) reset()
+          if (hydrated && window.confirm('恢复为默认内容？当前修改将丢失（可先导出 JSON 备份）。')) reset()
         }}
+        disabled={!hydrated}
         className={btnCls}
       >
         恢复默认
       </button>
-      <button type="button" onClick={() => setCredOpen(true)} className={btnCls}>
+      <button type="button" onClick={() => setCredOpen(true)} disabled={!accountsReady} className={btnCls}>
         修改密码
       </button>
       <button
@@ -134,6 +180,7 @@ export default function AdminToolbar() {
         退出登录
       </button>
       <CredentialsModal open={credOpen} onClose={() => setCredOpen(false)} />
+      <AccountProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   )
 }

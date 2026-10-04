@@ -1,0 +1,33 @@
+.scroll-animation {
+  --scroll-animation-distance: 34px;
+  --scroll-animation-duration: 760ms;
+  --scroll-animation-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+.scroll-animation-ready {
+  opacity: 0;
+  transform: translate3d(0, var(--scroll-animation-distance), 0);
+  transition: opacity var(--scroll-animation-duration) ease, transform var(--scroll-animation-duration) var(--scroll-animation-ease);
+  will-change: opacity, transform;
+}
+
+.scroll-animation-ready.scroll-animation--left { transform: translate3d(calc(var(--scroll-animation-distance) * -1), 0, 0); }
+.scroll-animation-ready.scroll-animation--right { transform: translate3d(var(--scroll-animation-distance), 0, 0); }
+.scroll-animation-ready.scroll-animation--down { transform: translate3d(0, calc(var(--scroll-animation-distance) * -1), 0); }
+.scroll-animation-ready.scroll-animation-visible { opacity: 1; transform: translate3d(0, 0, 0); }
+
+@media (max-width: 767px) {
+  .scroll-animation { --scroll-animation-distance: 18px; --scroll-animation-duration: 620ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-animation-ready,
+  .scroll-animation-ready.scroll-animation--left,
+  .scroll-animation-ready.scroll-animation--right,
+  .scroll-animation-ready.scroll-animation--down,
+  .scroll-animation-ready.scroll-animation-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

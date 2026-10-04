@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { brandAssets } from '../config/site'
+import { useContent } from '../lib/contentStore'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
 
 const CHAR_POOL = [...'天图府探索构建绘制记录经纬山海01{}[]<>/=;:*#.']
-const COUNT = 1000
+const DESKTOP_COUNT = 820
+const COMPACT_COUNT = 520
 const RED: [number, number, number] = [199, 27, 27]
 const WHITE: [number, number, number] = [255, 255, 255]
-const LOGO_GRID = 64
+const LOGO_GRID = 48
 
 interface SpherePoint {
   x: number
@@ -25,11 +27,11 @@ interface CodeSphereProps {
   intensity?: number
 }
 
-function makePoints(): SpherePoint[] {
+function makePoints(count: number): SpherePoint[] {
   const points: SpherePoint[] = []
   const golden = Math.PI * (3 - Math.sqrt(5))
-  for (let i = 0; i < COUNT; i++) {
-    const y = 1 - (i / (COUNT - 1)) * 2
+  for (let i = 0; i < count; i++) {
+    const y = 1 - (i / (count - 1)) * 2
     const r = Math.sqrt(1 - y * y)
     const theta = golden * i
     points.push({
@@ -49,6 +51,8 @@ function makePoints(): SpherePoint[] {
  * - intensity：悬停关键词时增强星核呼吸与光晕，作为同步回应
  */
 export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
+  const { content } = useContent()
+  const emblem = content.media.brand.emblem
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const intensityRef = useRef(intensity)
 
@@ -62,13 +66,15 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const points = makePoints()
+    let reduced = isMotionReduced()
+    const compact = window.innerWidth < 900 || (window.devicePixelRatio || 1) > 2
+    const points = makePoints(compact ? COMPACT_COUNT : DESKTOP_COUNT)
     let logoCells: LogoCell[] = []
 
     // 将指南针 Logo 采样为点阵
     const logoImg = new Image()
-    logoImg.src = brandAssets.emblem
+    logoImg.crossOrigin = 'anonymous'
+    logoImg.src = emblem
     logoImg.onload = () => {
       const c = document.createElement('canvas')
       c.width = LOGO_GRID
@@ -90,6 +96,7 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
         }
       }
       logoCells = cells
+      if (reduced && visible) drawFrame(performance.now())
     }
 
     let raf = 0
@@ -98,6 +105,7 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
     let dpr = 1
     let targetYaw = 0
     let yaw = 0
+    let visible = false
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect()
@@ -107,6 +115,7 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
       canvas.width = Math.round(width * dpr)
       canvas.height = Math.round(height * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (reduced && visible) drawFrame(performance.now())
     }
     resize()
     window.addEventListener('resize', resize)
@@ -145,14 +154,14 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
         const x2 = x1
 
         const brightness = Math.max(0, (x2 * lx + y2 * ly + z2 * lz) / lightLen)
-        const alpha = 0.06 + brightness * 0.8
-        const size = 6.5 + brightness * 4
+        const alpha = 0.08 + brightness * 0.72
+        const size = (compact ? 5.6 : 6.2) + brightness * 3.2
         const sx = cx + x2 * R
         const sy = cy + y2 * R * 0.92
 
         let color: string
         if (p.ch === '天' || p.ch === '图' || p.ch === '府') {
-          color = `rgba(231,71,71,${0.45 + brightness * 0.55})`
+          color = `rgba(218,143,104,${0.5 + brightness * 0.5})`
         } else {
           const mix = brightness
           const r = Math.round(WHITE[0] + (RED[0] - WHITE[0]) * (1 - mix))
@@ -168,31 +177,32 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
         ctx.fillText(p.ch, sx, sy)
       }
 
-      // 点阵/颗粒指南针徽章（红核 + 霓虹粉光晕）
+      // 点阵/颗粒指南针徽章（纸金色颗粒与朱红核心，降低高频绘制量）
       if (logoCells.length > 0) {
         const focus = Math.min(1, Math.max(0, intensityRef.current))
-        const logoSize = Math.min(width, height) * 0.46
-        const cellSize = (logoSize / LOGO_GRID) * 1.45
+        const logoSize = Math.min(width, height) * 0.44
+        const cellSize = (logoSize / LOGO_GRID) * (compact ? 1.35 : 1.25)
         const breatheLogo = 0.45 + (0.25 + 0.75 * focus) * 0.55 * Math.abs(Math.sin(now * 0.0009))
         const rot = reduced ? 0 : now * 0.00009
         const cosR = Math.cos(rot)
         const sinR = Math.sin(rot)
         for (const cell of logoCells) {
-          if ((cell.seed * 13) % 5 === 0) continue
+          if ((cell.seed * 13) % 3 === 0) continue
           const flicker = Math.sin(now * 0.006 + cell.seed) > -0.5 ? 1 : 0
           const rx = cell.x * cosR - cell.y * sinR
           const ry = cell.x * sinR + cell.y * cosR
           const px = cx + rx * (logoSize / 2)
           const py = cy + ry * (logoSize / 2)
-          // 外层霓虹光晕
-          ctx.fillStyle = `rgba(255,143,163,${(0.1 + 0.18 * focus) * breatheLogo * flicker})`
+          // 极少量粒子带暖纸色光晕，其余只画单点，避免一格两次绘制。
+          if ((cell.seed & 3) === 0) {
+            ctx.fillStyle = `rgba(226,196,148,${(0.08 + 0.13 * focus) * breatheLogo * flicker})`
+            ctx.beginPath()
+            ctx.arc(px, py, cellSize * 0.68, 0, Math.PI * 2)
+            ctx.fill()
+          }
+          ctx.fillStyle = `rgba(199,27,27,${0.24 + 0.62 * breatheLogo * flicker})`
           ctx.beginPath()
-          ctx.arc(px, py, cellSize * 0.75, 0, Math.PI * 2)
-          ctx.fill()
-          // 核心红粒子
-          ctx.fillStyle = `rgba(231,71,71,${0.28 + 0.6 * breatheLogo * flicker})`
-          ctx.beginPath()
-          ctx.arc(px, py, cellSize * 0.32, 0, Math.PI * 2)
+          ctx.arc(px, py, cellSize * 0.3, 0, Math.PI * 2)
           ctx.fill()
         }
       }
@@ -200,17 +210,54 @@ export default function CodeSphere({ intensity = 0 }: CodeSphereProps) {
     }
 
     const tick = (now: number) => {
+      raf = 0
+      if (!visible || document.visibilityState === 'hidden') return
       drawFrame(now)
       if (!reduced) raf = requestAnimationFrame(tick)
     }
-    raf = requestAnimationFrame(tick)
+    const start = () => {
+      if (!visible || document.visibilityState === 'hidden') return
+      if (reduced) drawFrame(performance.now())
+      else if (!raf) raf = requestAnimationFrame(tick)
+    }
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf)
+      raf = 0
+    }
+    const onVisibility = () => (document.visibilityState === 'hidden' ? stop() : start())
+    const onMotionPreference = () => {
+      reduced = isMotionReduced()
+      stop()
+      if (visible) {
+        drawFrame(performance.now())
+        if (!reduced) start()
+      }
+    }
+    const observer = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(([entry]) => {
+          visible = Boolean(entry?.isIntersecting)
+          if (visible) start()
+          else stop()
+        }, { rootMargin: '80px' })
+      : null
+    if (observer) observer.observe(canvas)
+    else {
+      visible = true
+      start()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
 
     return () => {
-      cancelAnimationFrame(raf)
+      stop()
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
       window.removeEventListener('resize', resize)
       canvas.removeEventListener('mousemove', onMove)
+      logoImg.onload = null
     }
-  }, [])
+  }, [emblem])
 
   return <canvas ref={canvasRef} className="h-full w-full" />
 }

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useContent } from '../lib/contentStore'
+import EditableText from './admin/EditableText'
 import { setActiveMemberId } from '../lib/memberBus'
 import { setActiveNewsIndex } from '../lib/newsBus'
 import { COMMISSION_INDEX, FAQ_INDEX, MEMBER_INDEX, NEWS_DETAIL_INDEX, NEWS_INDEX, TOPIC_INDEX, WORKS_INDEX } from '../lib/pages'
-import { buildSearchIndex, searchEntries, SEARCH_TYPE_LABELS, type SearchEntry } from '../lib/searchIndex'
+import { buildSearchIndex, searchEntries, type SearchEntry } from '../lib/searchIndex'
 import { requestScene } from '../lib/sceneBus'
 import { setActiveTopicId } from '../lib/topicBus'
 
@@ -34,11 +35,19 @@ function Highlight({ text, query }: { text: string; query: string }) {
 /** 全局站内搜索：Ctrl+K / / / 导航栏搜索按钮唤起，↑↓ 选择、回车跳转、Esc 关闭 */
 export default function SearchOverlay() {
   const { content } = useContent()
+  const ui = content.ui.search
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+
+  const openSearch = () => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setOpen(true)
+  }
 
   const entries = useMemo(() => buildSearchIndex(content), [content])
   const results = useMemo(() => {
@@ -65,15 +74,15 @@ export default function SearchOverlay() {
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setOpen(true)
+        openSearch()
         return
       }
       if (event.key === '/' && !editing) {
         event.preventDefault()
-        setOpen(true)
+        openSearch()
       }
     }
-    const onOpen = () => setOpen(true)
+    const onOpen = openSearch
     window.addEventListener('keydown', onKey)
     window.addEventListener('ttf-search-open', onOpen)
     return () => {
@@ -92,7 +101,27 @@ export default function SearchOverlay() {
 
   useEffect(() => setActiveIndex(0), [query])
 
-  const close = () => setOpen(false)
+  const close = () => {
+    setOpen(false)
+    window.setTimeout(() => returnFocusRef.current?.focus(), 0)
+  }
+
+  const onDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'),
+    )
+    if (!focusable.length) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
 
   const openResult = (entry: SearchEntry) => {
     setOpen(false)
@@ -143,21 +172,23 @@ export default function SearchOverlay() {
   if (!open) return null
 
   const quickLinks = [
-    { label: '作品集', index: WORKS_INDEX },
-    { label: '新闻动态', index: NEWS_INDEX },
-    { label: '常见问题', index: FAQ_INDEX },
-    { label: '约稿服务', index: COMMISSION_INDEX },
+    { label: ui.quickWorks, path: 'ui.search.quickWorks', index: WORKS_INDEX },
+    { label: ui.quickNews, path: 'ui.search.quickNews', index: NEWS_INDEX },
+    { label: ui.quickFaq, path: 'ui.search.quickFaq', index: FAQ_INDEX },
+    { label: ui.quickCommission, path: 'ui.search.quickCommission', index: COMMISSION_INDEX },
   ]
 
   return (
     <div
       className="fixed inset-0 z-[120] flex items-start justify-center bg-black/60 px-4 pt-[10vh] backdrop-blur-sm"
       onClick={close}
+      onKeyDown={onDialogKeyDown}
       role="dialog"
       aria-modal="true"
-      aria-label="站内搜索"
+      aria-label={ui.label}
     >
       <div
+        ref={dialogRef}
         className="w-full max-w-[720px] overflow-hidden rounded-2xl border border-white/10 bg-ink-900/95 shadow-[0_0_80px_rgba(199,27,27,0.22)] backdrop-blur-xl"
         onClick={(event) => event.stopPropagation()}
       >
@@ -171,11 +202,21 @@ export default function SearchOverlay() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="搜索新闻、成员、作品、主题、FAQ…"
-            aria-label="搜索关键词"
+            placeholder={ui.placeholder}
+            aria-label={ui.keywordLabel}
             className="min-w-0 flex-1 bg-transparent text-lg text-parchment-100 outline-none placeholder:text-parchment-500"
           />
-          <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 sm:block">Ctrl K / ESC</span>
+          <span className="hidden shrink-0 font-mono text-[10px] tracking-[0.2em] text-parchment-500 sm:block">
+            <EditableText as="span" value={ui.shortcutHint} path="ui.search.shortcutHint" />
+          </span>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="关闭搜索"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 text-lg text-parchment-400 transition-colors hover:border-brand-500/50 hover:text-brand-400"
+          >
+            ×
+          </button>
         </div>
 
         <div ref={listRef} className="max-h-[55vh] overflow-y-auto p-2">
@@ -188,7 +229,11 @@ export default function SearchOverlay() {
                   <div key={entry.id}>
                     {showHeader && (
                       <p className="px-3 pb-1 pt-3 font-mono text-[10px] tracking-[0.35em] text-brand-400">
-                        {SEARCH_TYPE_LABELS[entry.type]}
+                        <EditableText
+                          as="span"
+                          value={ui.typeLabels[entry.type]}
+                          path={`ui.search.typeLabels.${entry.type}`}
+                        />
                       </p>
                     )}
                     <button
@@ -212,12 +257,14 @@ export default function SearchOverlay() {
               })
             ) : (
               <p className="px-4 py-10 text-center font-mono text-xs tracking-[0.3em] text-parchment-500">
-                未找到相关内容（占位提示）
+                <EditableText as="span" value={ui.empty} path="ui.search.empty" />
               </p>
             )
           ) : (
             <div className="px-4 py-6">
-              <p className="font-mono text-[10px] tracking-[0.35em] text-brand-400">快捷入口</p>
+              <p className="font-mono text-[10px] tracking-[0.35em] text-brand-400">
+                <EditableText as="span" value={ui.quickLinks} path="ui.search.quickLinks" />
+              </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {quickLinks.map((link) => (
                   <button
@@ -229,14 +276,14 @@ export default function SearchOverlay() {
                     }}
                     className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 font-mono text-[10px] tracking-[0.2em] text-parchment-300 transition-colors hover:border-brand-500/50 hover:text-brand-400"
                   >
-                    {link.label}
+                    <EditableText as="span" value={link.label} path={link.path} />
                   </button>
                 ))}
               </div>
               <p className="mt-5 border-t border-white/10 pt-4 font-mono text-[10px] leading-relaxed tracking-[0.2em] text-parchment-500/70">
-                支持搜索：新闻 · 成员 · 作品 · 创作主题 · FAQ · 赛事 · 约稿 · 版权
+                <EditableText as="span" value={ui.supports} path="ui.search.supports" />
                 <br />
-                ↑↓ 选择 · Enter 跳转 · Esc 关闭
+                <EditableText as="span" value={ui.keyboardHint} path="ui.search.keyboardHint" />
               </p>
             </div>
           )}

@@ -1,106 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Lightbox from '../components/Lightbox'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { DIRECTORY_INDEX, MEMBER_INDEX } from '../lib/pages'
 import { setActiveMemberId } from '../lib/memberBus'
 import { getActiveTopicId } from '../lib/topicBus'
 import { requestScene } from '../lib/sceneBus'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { catalogueImage } from '../lib/catalogueImage'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { CreativeButton } from '../components/ui/creative-button'
 
-/** 创作主题子页：展示该主题下的作品与作者 */
 export default function TopicView() {
-  const { content } = useContent()
-  const topics = content.topics
-  const members = content.members
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
   const [activeId, setActiveId] = useState<string | null>(() => getActiveTopicId())
-
+  const [reading, setReading] = useState<number | null>(null)
   useEffect(() => {
-    const onTopic = (event: Event) => {
-      setActiveId((event as CustomEvent).detail.id as string)
-    }
+    const onTopic = (event: Event) => { setActiveId((event as CustomEvent).detail.id as string); setReading(null); if (root.current) root.current.scrollTop = 0 }
     window.addEventListener('ttf-topic', onTopic)
     return () => window.removeEventListener('ttf-topic', onTopic)
   }, [])
-
-  const index = Math.max(0, topics.findIndex((topic) => topic.id === activeId))
-  const topic = topics[index]
-  if (!topic) return null
-  const topicMembers = members.filter((member) => member.topic === topic.id)
-
-  return (
-    <section id="topic" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="scene-block flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 12 · TOPIC · 创作主题</p>
-            <EditableText
-              as="h1"
-              value={topic.name}
-              path={`topics.${index}.name`}
-              className="mt-3 w-full font-display text-5xl tracking-[0.12em] text-parchment-100 lg:text-6xl"
-            />
-            <EditableText
-              as="p"
-              multiline
-              value={topic.desc}
-              path={`topics.${index}.desc`}
-              className="mt-3 max-w-xl text-sm leading-relaxed text-parchment-400"
-            />
-            {(topic.keywords ?? []).length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(topic.keywords ?? []).map((keyword) => (
-                  <span key={keyword} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[10px] tracking-[0.15em] text-parchment-400">
-                    {keyword}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => requestScene(DIRECTORY_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-6 py-2.5 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            ← 返回创作主题
-          </button>
-        </div>
-
-        <p className="scene-block mt-10 font-mono text-xs tracking-[0.35em] text-brand-400">
-          作品与作者 · {topicMembers.length}
-        </p>
-        <div className="scene-block mt-4 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {topicMembers.map((member) => (
-            <button
-              key={member.id}
-              type="button"
-              onClick={() => {
-                setActiveMemberId(member.id)
-                requestScene(MEMBER_INDEX)
-              }}
-              className="group overflow-hidden rounded-lg border border-white/10 bg-ink-950/45 text-left backdrop-blur-sm transition-all duration-300 hover:border-brand-500/50"
-            >
-              <div className="aspect-[16/10] overflow-hidden">
-                <img
-                  src={member.work.image}
-                  alt={member.work.title}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-              <div className="flex items-center gap-3 px-4 py-3">
-                <img src={member.avatar} alt="" loading="lazy" className="h-9 w-9 rounded-full border border-brand-500/50 bg-ink-900 object-cover" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-parchment-100">{member.name}</p>
-                  <p className="truncate text-[10px] text-parchment-500">{member.work.title}</p>
-                </div>
-                <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-brand-400">进入 →</span>
-              </div>
-            </button>
-          ))}
-        </div>
-        {topicMembers.length === 0 && (
-          <p className="mt-8 text-sm text-parchment-500">该主题暂无作品（占位，后续补充）</p>
-        )}
-      </div>
-    </section>
-  )
+  const index = content.topics.findIndex((entry) => entry.id === activeId)
+  const topic = content.topics[index]
+  const maps = exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative).filter(({ work }) => work.topic === topic?.id)
+  useExhibitionMotion(root, admin, `${activeId}-${maps.length}`)
+  return <section ref={root} id="topic" data-scroll-root className="atlas-night editorial-page relative h-full w-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <CreativeButton direction="top" text={content.ui.topic.backDirectory} onClick={() => requestScene(DIRECTORY_INDEX)} />
+    {!topic ? <p className="author-unavailable">{content.ui.exhibition.themeUnavailable}</p> : <>
+      <header className="topic-reading-header"><EditableText as="h1" value={topic.name} path={`topics.${index}.name`} className="editorial-title w-full max-w-6xl" /><div><EditableText as="p" multiline value={topic.desc} path={`topics.${index}.desc`} className="reading-copy" /><div className="editorial-keywords">{(topic.keywords ?? []).map((word, i) => <EditableText key={i} as="span" value={word} path={`topics.${index}.keywords.${i}`} />)}</div></div></header>
+      <div className="collection-section-title"><EditableText as="h2" value={content.ui.topic.worksAuthors} path="ui.topic.worksAuthors" /><span className="collection-count">{maps.length} {content.ui.exhibition.countUnit}</span></div>
+      <div className={`collection-map-grid ${maps.length === 1 ? 'topic-single-map' : ''}`}>{maps.map(({ work, member, index: workIndex }, i) => <article className="collection-map" key={work.id} data-exhibit-reveal><button type="button" className="collection-map-cover" aria-label={content.ui.works.readMap + ' · ' + work.title} onClick={() => setReading(i)}><img src={work.image} alt={work.title} loading="lazy" /><span>{content.ui.works.readMap} ↗</span></button><div className="collection-map-caption"><div>{workIndex >= 0 ? <EditableText as="h3" value={work.title} path={`worksArchive.${workIndex}.title`} /> : <h3>{work.title}</h3>}<p>{work.category}</p></div>{member ? <button type="button" className="collection-byline" onClick={() => { setActiveMemberId(member.id); requestScene(MEMBER_INDEX) }}><img src={member.avatar} alt="" loading="lazy" />{member.name} ↗</button> : <span>{work.author}</span>}</div></article>)}</div>
+      {!maps.length && <EditableText as="p" value={content.ui.topic.empty} path="ui.topic.empty" className="exhibit-empty" />}
+    </>}
+  </div>{reading !== null && <Lightbox images={maps.map(catalogueImage)} index={reading} onClose={() => setReading(null)} onIndexChange={setReading} />}</section>
 }

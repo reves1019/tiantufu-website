@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import EditableText from './admin/EditableText'
+import { useContent } from '../lib/contentStore'
 
 interface KeywordDockProps {
   keywords: string[]
@@ -22,6 +24,8 @@ export default function KeywordDock({
   onFocusChange,
   onOpenChange,
 }: KeywordDockProps) {
+  const { content } = useContent()
+  const ui = content.ui.keywordDock
   const [open, setOpen] = useState(false)
   // ref 同步标记：避免点击后立即移开鼠标时，React 状态尚未刷新导致误收起
   const pinnedRef = useRef(false)
@@ -46,7 +50,7 @@ export default function KeywordDock({
   }
 
   const togglePin = () => {
-    if (open) {
+    if (open && pinnedRef.current) {
       // 当前已展开：点击手柄收起并取消钉住
       setPinnedState(false)
       setOpenState(false)
@@ -67,16 +71,17 @@ export default function KeywordDock({
 
   return (
     <div
-      className="absolute right-[104px] top-1/2 z-30 hidden -translate-y-1/2 md:block"
+      className="pointer-events-none absolute right-6 top-1/2 z-30 hidden -translate-y-1/2 lg:block"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
-      title="关键词目录"
+      title={ui.heading}
     >
       <div
         className="relative h-[min(500px,72vh)] w-[216px]"
       >
         {/* 玻璃面板主体：在裁剪容器内左右滑动，收起时完全滑出视野 */}
-        <div className="absolute inset-0 right-5 overflow-hidden rounded-l-2xl">
+        <div id="keyword-dock-panel" ref={(element) => { if (element) element.inert = !open }} aria-hidden={!open}
+          className={`absolute inset-0 right-11 overflow-hidden rounded-l-2xl ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
           <div
             className={`absolute inset-0 rounded-l-2xl border border-white/10 border-r-0 bg-ink-950/60 shadow-[0_0_32px_rgba(199,27,27,0.16)] backdrop-blur-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               open ? 'translate-x-0' : 'translate-x-full'
@@ -89,7 +94,7 @@ export default function KeywordDock({
               }`}
             >
               <p className="mb-1.5 shrink-0 font-mono text-[10px] tracking-[0.4em] text-parchment-500">
-                关键词目录 · {String(keywords.length).padStart(2, '0')}
+                <EditableText as="span" value={ui.heading} path="ui.keywordDock.heading" /> · {String(keywords.length).padStart(2, '0')}
               </p>
               <div className="mb-2 shrink-0 h-px w-full bg-gradient-to-r from-brand-500/60 to-transparent" />
 
@@ -102,7 +107,7 @@ export default function KeywordDock({
                       type="button"
                       onMouseEnter={() => onSelect(keyword)}
                       onClick={() => handleRowClick(keyword)}
-                      className={`group/row flex w-full shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1 text-left transition-all duration-300 ${
+                      className={`group/row flex w-full shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1 text-left transition-[transform,background-color,border-color,color,box-shadow] duration-300 ${
                         active
                           ? 'translate-x-1 scale-[1.02] border-brand-500/60 bg-brand-500/15 text-brand-400 shadow-[0_0_16px_rgba(199,27,27,0.35)]'
                           : 'border-transparent text-parchment-300 hover:translate-x-0.5 hover:bg-white/5 hover:text-parchment-100'
@@ -128,9 +133,9 @@ export default function KeywordDock({
               </div>
 
               <p className="mt-2 shrink-0 border-t border-white/5 pt-2 font-mono text-[10px] leading-relaxed tracking-[0.2em] text-parchment-500/70">
-                悬停查看 · 占位内容
+                <EditableText as="span" value={ui.hoverHint} path="ui.keywordDock.hoverHint" />
                 <br />
-                后续替换为正式说明
+                <EditableText as="span" value={ui.replaceHint} path="ui.keywordDock.replaceHint" />
               </p>
             </div>
           </div>
@@ -145,8 +150,9 @@ export default function KeywordDock({
             onFocusChange(true)
           }}
           aria-expanded={open}
-          aria-label={open ? '收起关键词目录' : '展开关键词目录'}
-          className="absolute right-0 top-0 h-full w-5 cursor-pointer rounded-r-2xl border-l border-white/10 bg-gradient-to-b from-brand-500/90 via-brand-600/80 to-brand-500/90 shadow-[0_0_12px_rgba(199,27,27,0.5)] transition-all duration-300 hover:w-6 hover:from-brand-400 hover:via-brand-500 hover:to-brand-400"
+          aria-controls="keyword-dock-panel"
+          aria-label={open ? ui.collapse : ui.expand}
+          className="pointer-events-auto absolute right-0 top-0 h-full w-11 cursor-pointer rounded-r-md border-l border-brand-500/40 bg-brand-500/10 transition-[background-color,border-color] duration-300 hover:bg-brand-500/25"
         >
           <span
             className={`flex h-full w-full items-center justify-center transition-opacity duration-300 ${
@@ -157,7 +163,7 @@ export default function KeywordDock({
               className="font-mono text-[10px] tracking-[0.25em] text-white/90"
               style={{ writingMode: 'vertical-rl' }}
             >
-              目录
+              <EditableText as="span" value={ui.verticalLabel} path="ui.keywordDock.verticalLabel" />
             </span>
           </span>
         </button>

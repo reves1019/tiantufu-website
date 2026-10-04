@@ -1,15 +1,14 @@
 const DB_NAME = 'ttf-uploads'
 const DB_STORE = 'dir-handle'
-// 不再限制 Base64 回退体积：站点内容现在以 IndexedDB 持久化，可容纳大图。
-// 仅保留提示阈值，超出时建议使用“上传目录”模式以减小导出 JSON 体积。
-const LARGE_IMAGE_BYTES = 3 * 1024 * 1024
-
 export interface UploadResult {
   /** 写入内容的引用：/uploads/xxx.png 或 data:image/... */
   ref: string
   mode: 'file' | 'dataurl'
   dirName?: string
 }
+
+const MAX_INLINE_IMAGE_BYTES = 10 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp'])
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -57,12 +56,44 @@ export async function chooseUploadDirectory(): Promise<string | null> {
     const picker = (window as unknown as {
       showDirectoryPicker: (options?: { mode?: string }) => Promise<FileSystemDirectoryHandle>
     }).showDirectoryPicker
-    const handle = await picker.call(window, { mode: 'readwrite' })
-    await saveDirectoryHandle(handle)
-    return handle.name
+    const selected = await picker.call(window, { mode: 'readwrite' })
+    const target = await resolveServedAssetsDirectory(selected)
+    await saveDirectoryHandle(target.handle)
+    return target.label
   } catch {
     return null
   }
+}
+
+async function hasFile(directory: FileSystemDirectoryHandle, name: string): Promise<boolean> {
+  try {
+    await directory.getFileHandle(name)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function hasDirectory(directory: FileSystemDirectoryHandle, name: string): Promise<boolean> {
+  try {
+    await directory.getDirectoryHandle(name)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Vite 项目根目录里的静态文件必须放在 public/ 才能进入预览与构建产物。 */
+async function resolveServedAssetsDirectory(selected: FileSystemDirectoryHandle) {
+  const looksLikeViteRoot =
+    (await hasFile(selected, 'vite.config.ts')) ||
+    (await hasFile(selected, 'vite.config.js')) ||
+    (await hasFile(selected, 'vite.config.mts'))
+  if (looksLikeViteRoot && (await hasDirectory(selected, 'public'))) {
+    const publicDirectory = await selected.getDirectoryHandle('public')
+    return { handle: publicDirectory, label: `${selected.name}/public` }
+  }
+  return { handle: selected, label: selected.name }
 }
 
 async function writeToUploads(dir: FileSystemDirectoryHandle, fileName: string, file: File): Promise<void> {
@@ -91,16 +122,23 @@ function safeFileName(name: string): string {
  * 上传图片：
  * 1. 已有目录句柄 → 写入该目录 uploads/，返回 /uploads/文件名；
  * 2. 无句柄但浏览器支持目录选择 → 弹出选择（用户可取消，随后回退）；
- * 3. 都不行 → 1MB 以内转 Base64，超出报错提示改用目录模式。
+ * 3. 都不行 → 转 Base64 存入本机 IndexedDB；该方式不会把图片上传到线上服务器。
  */
 export async function uploadImage(file: File): Promise<UploadResult> {
-  const fileName = `${Date.now()}-${safeFileName(file.name)}`
+  if (file.size === 0) throw new Error('图片文件为空，请重新选择一张有效图片。')
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    throw new Error('请选择 PNG、JPG、WebP、GIF、AVIF 或 BMP 图片。')
+  }
+  const random = globalThis.crypto?.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10)
+  const fileName = `${Date.now()}-${random}-${safeFileName(file.name)}`
 
   const saved = await getSavedDirectoryHandle()
   if (saved) {
     try {
-      await writeToUploads(saved, fileName, file)
-      return { ref: `/uploads/${fileName}`, mode: 'file', dirName: saved.name }
+      const target = await resolveServedAssetsDirectory(saved)
+      await writeToUploads(target.handle, fileName, file)
+      if (target.handle !== saved) await saveDirectoryHandle(target.handle)
+      return { ref: `/uploads/${fileName}`, mode: 'file', dirName: target.label }
     } catch {
       // 写入失败（目录可能已失效），继续尝试选择新目录或回退
     }
@@ -111,17 +149,18 @@ export async function uploadImage(file: File): Promise<UploadResult> {
       const picker = (window as unknown as {
         showDirectoryPicker: (options?: { mode?: string }) => Promise<FileSystemDirectoryHandle>
       }).showDirectoryPicker
-      const dir = await picker.call(window, { mode: 'readwrite' })
-      await saveDirectoryHandle(dir)
-      await writeToUploads(dir, fileName, file)
-      return { ref: `/uploads/${fileName}`, mode: 'file', dirName: dir.name }
+      const selected = await picker.call(window, { mode: 'readwrite' })
+      const target = await resolveServedAssetsDirectory(selected)
+      await saveDirectoryHandle(target.handle)
+      await writeToUploads(target.handle, fileName, file)
+      return { ref: `/uploads/${fileName}`, mode: 'file', dirName: target.label }
     } catch {
       // 用户取消或权限失败 → 回退 Base64
     }
   }
 
-  if (file.size > LARGE_IMAGE_BYTES) {
-    // 不再报错：图片会以 Base64 存入 IndexedDB 并在导出 JSON 时完整保留。
+  if (file.size > MAX_INLINE_IMAGE_BYTES) {
+    throw new Error('图片超过 10 MB，且当前没有可写入的静态资源目录。请先选择项目 public 文件夹或离线网站目录再上传。')
   }
   const dataUrl = await readAsDataURL(file)
   return { ref: dataUrl, mode: 'dataurl' }

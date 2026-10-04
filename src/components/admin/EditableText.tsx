@@ -13,10 +13,10 @@ interface EditableTextProps {
 
 /** 管理员模式下的可编辑文本：点击直接输入，修改自动保存 */
 export default function EditableText({ value, path, as = 'span', className, multiline, placeholder }: EditableTextProps) {
-  const { admin, setAt } = useContent()
+  const { admin, hydrated, setAt } = useContent()
   const Tag: ElementType = as
 
-  if (!admin) return <Tag className={className}>{value}</Tag>
+  if (!admin || !hydrated) return <Tag className={className}>{value}</Tag>
 
   const inputClass =
     'rounded border border-dashed border-brand-500 bg-ink-900/90 px-2 py-1 text-parchment-100 outline-none transition-colors focus:border-brand-400'
@@ -29,6 +29,7 @@ export default function EditableText({ value, path, as = 'span', className, mult
         placeholder={placeholder}
         rows={3}
         onChange={(event) => setAt(path, event.target.value)}
+        onClick={(event) => event.stopPropagation()}
       />
     )
   }
@@ -39,6 +40,7 @@ export default function EditableText({ value, path, as = 'span', className, mult
       value={value}
       placeholder={placeholder}
       onChange={(event) => setAt(path, event.target.value)}
+      onClick={(event) => event.stopPropagation()}
     />
   )
 }

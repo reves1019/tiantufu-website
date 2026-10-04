@@ -1,101 +1,55 @@
-import { useState } from 'react'
-import CodeSphere from '../components/CodeSphere'
-import KeywordDock from '../components/KeywordDock'
-import KeywordSpotlight from '../components/KeywordSpotlight'
-import KeywordAdminPanel from '../components/admin/KeywordAdminPanel'
+import { useMemo, useState } from 'react'
+import Lightbox from '../components/Lightbox'
 import EditableText from '../components/admin/EditableText'
+import KeywordAdminPanel from '../components/admin/KeywordAdminPanel'
 import { useContent } from '../lib/contentStore'
-import { WORK_INDEX } from '../lib/pages'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { catalogueImage } from '../lib/catalogueImage'
+import { setActiveMemberId } from '../lib/memberBus'
+import { MEMBER_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { clearSpotlight, updateSpotlight } from '../components/Spotlight'
 
 export default function EarthView() {
   const { content, admin } = useContent()
-  const earth = content.earth
-  const [activeKeyword, setActiveKeyword] = useState(earth.keywords[0] ?? '')
-  const [focused, setFocused] = useState(false)
-  const [dockOpen, setDockOpen] = useState(false)
-  const activeIndex = earth.keywords.indexOf(activeKeyword)
+  const ui = content.ui.exhibition
+  const maps = useMemo(() => exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative), [content.worksArchive, content.members, content.ui.member.representative])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [reading, setReading] = useState(false)
+  const [filter, setFilter] = useState('')
+  const filtered = maps.filter(({ work, member }) => !filter || (work.topic || member?.topic) === filter)
+  const selected = filtered.findIndex(({ work }) => work.id === selectedId)
+  const activeIndex = Math.max(0, selected)
+  const active = filtered[activeIndex]
+  const images = filtered.map(catalogueImage)
+  const railHint = ui.railHint.includes('拖动') ? '点击缩略图选择地图 · 方向键切换' : ui.railHint
 
-  const handleSphereClick = () => {
-    if (content.members.length === 0) return
-    requestScene(WORK_INDEX)
+  const move = (direction: number) => {
+    if (!filtered.length) return
+    setSelectedId(filtered[(activeIndex + direction + filtered.length) % filtered.length].work.id)
   }
-
-  return (
-    <section id="earth" className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden">
-      <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-center gap-10 px-8 pb-12 pt-24 lg:grid-cols-[1fr_1.2fr] lg:px-12">
-        {/* 左侧文案 */}
-        <div>
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">{earth.title} · 关键词索引</p>
-          <EditableText
-            as="h1"
-            value={earth.subtitle}
-            path="earth.subtitle"
-            className="scene-block mt-4 w-full font-display text-5xl leading-tight tracking-[0.12em] text-parchment-100 lg:text-6xl"
-          />
-          <p className="scene-block mt-4 max-w-xl text-sm leading-relaxed text-parchment-300">
-            {content.ui.earth.intro}
-          </p>
-
-          {/* 移动端：横向滚动的关键词条（PC 使用右侧关键词目录） */}
-          <div className="scene-block mt-6 flex max-w-xl gap-2 overflow-x-auto pb-2 md:hidden">
-            {earth.keywords.map((keyword, i) => {
-              const active = activeKeyword === keyword
-              return (
-                <button
-                  key={keyword}
-                  type="button"
-                  onMouseEnter={() => setActiveKeyword(keyword)}
-                  onClick={() => setActiveKeyword(keyword)}
-                  className={`shrink-0 rounded-full border px-3.5 py-1.5 font-mono text-xs tracking-[0.12em] transition-all duration-300 ${
-                    active
-                      ? 'border-brand-500/70 bg-brand-500/15 text-brand-400 shadow-[0_0_16px_rgba(199,27,27,0.4)]'
-                      : 'border-white/10 text-parchment-500 hover:border-brand-500/40 hover:text-brand-400'
-                  }`}
-                >
-                  <span className="mr-1.5 text-[10px] opacity-70">#{String(i + 1).padStart(2, '0')}</span>
-                  {keyword}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 右侧代码地球（交互式：点击随机发现作品） */}
-        <div>
-          <div
-            className="earth-sphere relative mx-auto aspect-square w-full max-w-[660px] cursor-pointer"
-            onClick={handleSphereClick}
-          >
-            <div className="absolute inset-0">
-              <CodeSphere intensity={focused ? 1 : 0} />
-            </div>
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/10 blur-3xl" />
-            {/* 关键词浮层（跟随悬停/选中的关键词） */}
-            <KeywordSpotlight
-              key={activeKeyword}
-              keyword={activeKeyword}
-              index={activeIndex}
-              visible={focused || dockOpen}
-            />
-          </div>
-          <p className="mt-4 text-center font-mono text-[10px] tracking-[0.3em] text-parchment-500">
-            {content.ui.earth.clickHint}
-          </p>
-        </div>
+  return <section id="earth" className="exhibit-page explore-page relative h-full w-full overflow-y-auto overflow-x-hidden" data-scroll-root>
+    <div className="exhibit-container">
+      <header className="explore-heading"><div><EditableText as="h1" value={ui.exploreTitle} path="ui.exhibition.exploreTitle" /><EditableText as="p" value={ui.exploreIntro} path="ui.exhibition.exploreIntro" multiline /></div>
+        <div className="explore-count" aria-live="polite">{filtered.length ? String(activeIndex + 1).padStart(2, '0') : '00'} / {String(filtered.length).padStart(2, '0')}</div>
+      </header>
+      <div className="explore-filters" role="group" aria-label={content.ui.works.allTopics}>
+        <button type="button" aria-pressed={!filter} onClick={() => setFilter('')}>{content.ui.works.filterAll}</button>
+        {content.topics.map(topic => <button key={topic.id} type="button" aria-pressed={filter === topic.id} onClick={() => setFilter(topic.id)}>{topic.name}</button>)}
       </div>
-
-      {/* 右侧关键词侧边标签栏（PC） */}
-      <KeywordDock
-        keywords={earth.keywords}
-        activeKeyword={activeKeyword}
-        onSelect={setActiveKeyword}
-        onFocusChange={setFocused}
-        onOpenChange={setDockOpen}
-      />
-
-      {/* 管理员：关键词列表编辑面板 */}
+      {active ? <figure className="explore-stage">
+        <button key={active.work.id} type="button" className="explore-image" onClick={() => setReading(true)} aria-label={ui.readMap + '：' + active.work.title}><img src={active.work.image} alt={active.work.title} /><span className="exhibit-image-action">{ui.readMap} ↗</span></button>
+        <figcaption><div><h2>{active.work.title}</h2>{active.member ? <button type="button" className="exhibit-text-link" onClick={() => { setActiveMemberId(active.member!.id); requestScene(MEMBER_INDEX) }}>{active.work.author} ↗</button> : <p>{active.work.author}</p>}</div>
+          <div className="explore-arrows"><button type="button" aria-label={ui.previousMap} disabled={filtered.length < 2} onClick={() => move(-1)}><span className="explore-arrow-label">PREV MAP</span><span aria-hidden="true">←</span></button><button type="button" aria-label={ui.nextMap} disabled={filtered.length < 2} onClick={() => move(1)}><span className="explore-arrow-label">NEXT MAP</span><span aria-hidden="true">→</span></button></div>
+        </figcaption>
+      </figure> : <p className="exhibit-empty">{ui.empty}</p>}
+      <p className="explore-hint">{railHint}</p>
+      <div className="explore-rail" role="group" aria-label={ui.selectMap}
+        onKeyDown={(event) => { if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); move(event.key === 'ArrowRight' ? 1 : -1) } }}>
+        {filtered.map(({ work }, index) => <button key={work.id} type="button" aria-pressed={activeIndex === index} onClick={() => setSelectedId(work.id)} onPointerMove={updateSpotlight} onPointerLeave={clearSpotlight} className="explore-thumbnail spotlight-surface"><img src={work.image} alt="" loading="lazy" draggable={false} /><span>{work.title}</span><small>{work.author}</small></button>)}
+      </div>
       {admin && <KeywordAdminPanel />}
-    </section>
-  )
+    </div>
+    {reading && active && <Lightbox images={images} index={activeIndex} onIndexChange={(index) => setSelectedId(filtered[index].work.id)} onClose={() => setReading(false)} />}
+  </section>
 }

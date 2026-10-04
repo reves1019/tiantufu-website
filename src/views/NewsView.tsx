@@ -1,145 +1,47 @@
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { setActiveNewsIndex } from '../lib/newsBus'
 import { ABOUT_INDEX, CONTEST_INDEX, NEWS_DETAIL_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { FlowButton } from '../components/ui/flow-button'
+import { LinearModal } from '../components/ui/linear-modal'
 
-/** 社团新闻子页：近期新闻列表 + 单图制图大赛入口 */
+let readingPlace: { tag: string | null; count: number } = { tag: null, count: 6 }
+
 export default function NewsView() {
-  const { content } = useContent()
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
   const news = content.about.news
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState(6)
-
-  const tags = useMemo(() => Array.from(new Set(news.map((item) => item.tag ?? '公告'))), [news])
-  const filtered = useMemo(
-    () =>
-      news
-        .map((item, index) => ({ item, index }))
-        .filter(({ item }) => selectedTag === null || (item.tag ?? '公告') === selectedTag),
-    [news, selectedTag],
-  )
+  const ui = content.ui.news
+  const [selectedTag, setSelectedTag] = useState(readingPlace.tag)
+  const [visibleCount, setVisibleCount] = useState(readingPlace.count)
+  const tags = [...new Set(news.map((item) => item.tag?.trim() || '公告'))]
+  const activeTag = selectedTag && tags.includes(selectedTag) ? selectedTag : null
+  const filtered = news.map((item, index) => ({ item, index })).filter(({ item }) => !activeTag || (item.tag?.trim() || '公告') === activeTag)
   const shown = filtered.slice(0, visibleCount)
-
-  const selectTag = (tag: string | null) => {
-    setSelectedTag(tag)
-    setVisibleCount(6)
-  }
-
-  const toggleExpand = () => {
-    setVisibleCount((v) => (v >= filtered.length ? 6 : Math.min(filtered.length, v + 6)))
-  }
-
-  return (
-    <section id="news" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="scene-block">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 08 · NEWS · 社团新闻</p>
-          <h1 className="mt-4 font-display text-5xl tracking-[0.14em] text-parchment-100 lg:text-6xl">
-            {content.ui.news.title}
-          </h1>
-          <p className="mt-3 text-sm tracking-[0.2em] text-parchment-400">{content.ui.news.subtitle}</p>
-        </div>
-
-        {/* 分类筛选 chips */}
-        <div className="scene-block no-scrollbar mt-8 flex items-center gap-3 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => selectTag(null)}
-            className={`shrink-0 rounded-full border px-4 py-1.5 font-mono text-[10px] tracking-[0.2em] transition-all duration-300 ${
-              selectedTag === null
-                ? 'border-brand-500 bg-brand-500/15 text-brand-400 shadow-[0_0_14px_rgba(199,27,27,0.25)]'
-                : 'border-white/10 bg-ink-950/45 text-parchment-300 hover:border-brand-500/40 hover:text-brand-400'
-            }`}
-          >
-            全部 · {filtered.length}
-          </button>
-          {tags.map((tag) => {
-            const active = selectedTag === tag
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => selectTag(tag)}
-                className={`shrink-0 rounded-full border px-4 py-1.5 font-mono text-[10px] tracking-[0.2em] transition-all duration-300 ${
-                  active
-                    ? 'border-brand-500 bg-brand-500/15 text-brand-400 shadow-[0_0_14px_rgba(199,27,27,0.25)]'
-                    : 'border-white/10 bg-ink-950/45 text-parchment-300 hover:border-brand-500/40 hover:text-brand-400'
-                }`}
-              >
-                {tag}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="scene-block mt-10 grid gap-4 md:grid-cols-2">
-          {shown.map(({ item, index: i }) => (
-            <button
-              key={item.title}
-              type="button"
-              onClick={() => {
-                setActiveNewsIndex(i)
-                requestScene(NEWS_DETAIL_INDEX)
-              }}
-              className="group rounded-lg border border-white/10 bg-ink-950/45 p-6 text-left backdrop-blur-sm transition-all duration-300 hover:border-brand-500/50 hover:shadow-[0_0_24px_rgba(199,27,27,0.16)]"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <EditableText as="span" value={item.date} path={`about.news.${i}.date`} className="font-mono text-[10px] tracking-[0.3em] text-brand-400" />
-                <EditableText
-                  as="span"
-                  value={item.tag ?? '公告'}
-                  path={`about.news.${i}.tag`}
-                  className="shrink-0 rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-0.5 font-mono text-[9px] tracking-[0.2em] text-brand-400"
-                />
-              </div>
-              <span className="mt-2 flex items-center gap-2">
-                <EditableText as="h3" value={item.title} path={`about.news.${i}.title`} className="text-lg tracking-[0.1em] text-parchment-100 transition-colors group-hover:text-brand-400" />
-                <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-parchment-500 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                  {content.ui.news.detailHint}
-                </span>
-              </span>
-              <EditableText as="p" multiline value={item.desc} path={`about.news.${i}.desc`} className="mt-2 text-sm leading-relaxed text-parchment-500" />
-            </button>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <p className="scene-block mt-16 text-center font-mono text-sm tracking-[0.3em] text-parchment-500">
-            {content.ui.news.empty}
-          </p>
-        )}
-
-        {filtered.length > 6 && (
-          <div className="scene-block mt-10 flex justify-center">
-            <button
-              type="button"
-              onClick={toggleExpand}
-              className="rounded-full border border-brand-500/40 bg-ink-950/55 px-8 py-3 font-mono text-xs tracking-[0.25em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10 hover:shadow-[0_0_24px_rgba(199,27,27,0.3)]"
-            >
-              {visibleCount >= filtered.length ? content.ui.works.collapse : content.ui.news.expand}
-            </button>
-          </div>
-        )}
-
-        <div className="scene-block mt-10 flex flex-wrap gap-4">
-          <button
-            type="button"
-            onClick={() => requestScene(CONTEST_INDEX)}
-            className="rounded-md bg-brand-500 px-7 py-3 text-sm tracking-[0.2em] text-white shadow-[0_0_24px_rgba(199,27,27,0.35)] transition-all duration-300 hover:bg-brand-600"
-          >
-            {content.ui.news.contestCta}
-          </button>
-          <button
-            type="button"
-            onClick={() => requestScene(ABOUT_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            {content.ui.news.backAbout}
-          </button>
-        </div>
-      </div>
-    </section>
-  )
+  const map = exhibitionCatalog(content.worksArchive, content.members, '地图')[0]?.work
+  useExhibitionMotion(root, admin, `${activeTag}-${shown.length}`)
+  const select = (tag: string | null) => { setSelectedTag(tag); setVisibleCount(6); readingPlace = { tag, count: 6 } }
+  const expand = () => { const count = visibleCount >= filtered.length ? 6 : visibleCount + 6; setVisibleCount(count); readingPlace = { tag: activeTag, count } }
+  return <section ref={root} id="news" aria-label={ui.title} data-scroll-root className="atlas-night editorial-page journal-page h-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <button type="button" className="collection-text-link" onClick={() => requestScene(ABOUT_INDEX)}>{ui.backAbout}</button>
+    <header className="journal-header" data-exhibit-reveal><div><p className="linear-modal-kicker">{ui.kicker}</p><EditableText as="h1" value={ui.title} path="ui.news.title" className="editorial-title w-full max-w-6xl" /><EditableText as="p" multiline value={ui.subtitle} path="ui.news.subtitle" className="reading-copy" /></div><button type="button" className="journal-feature" onClick={() => requestScene(CONTEST_INDEX)} aria-label={ui.contestCta}>{map && <img src={map.image} alt="" loading="lazy" data-exhibit-image />}<span>{ui.contestCta}</span></button></header>
+    <div className="journal-filter" role="group" aria-label={ui.filterLabel} aria-controls="news-results">{[null, ...tags].map((tag) => <button type="button" key={tag ?? 'all'} aria-pressed={activeTag === tag} onClick={() => select(tag)}>{tag ?? ui.allFilter}<span aria-hidden="true">{tag ? news.filter((item) => (item.tag?.trim() || '公告') === tag).length : news.length}</span></button>)}</div>
+    <p className="reading-copy mt-4" role="status" aria-live="polite">{activeTag ? `${activeTag} · ` : ''}共 {filtered.length} 条动态，当前展示 {Math.min(shown.length, filtered.length)} 条</p>
+    <div id="news-results" className="journal-list" aria-live="polite">{shown.map(({ item, index }) => <article key={index} id={`news-entry-${index}`} aria-labelledby={`news-entry-title-${index}`} className="journal-entry" data-exhibit-reveal><div className="journal-entry-meta"><EditableText value={item.date} path={`about.news.${index}.date`} /><EditableText value={item.tag ?? '公告'} path={`about.news.${index}.tag`} /></div><div><h2 id={`news-entry-title-${index}`}><LinearModal
+      trigger={<><span>{item.title}</span><span aria-hidden="true">↗</span></>}
+      triggerClassName="journal-entry-title"
+      triggerAriaLabel={`${item.title} · ${ui.detailHint}`}
+      kicker={`${item.date} · ${item.tag ?? '公告'}`}
+      title={item.title}
+      description={<p>{item.body ?? item.desc}</p>}
+      footer={(close) => <FlowButton text="打开完整报道" onClick={() => { close(); setActiveNewsIndex(index); requestScene(NEWS_DETAIL_INDEX) }} />}
+    /></h2>{admin && <EditableText value={item.title} path={`about.news.${index}.title`} />}<EditableText as="p" multiline value={item.desc} path={`about.news.${index}.desc`} className="reading-copy" /></div></article>)}</div>
+    {!filtered.length && <p className="reading-copy journal-empty" role="status">{ui.empty}</p>}
+    {filtered.length > 6 && <FlowButton className="journal-more" aria-controls="news-results" aria-expanded={visibleCount >= filtered.length} onClick={expand} text={visibleCount >= filtered.length ? content.ui.works.collapse : ui.expand} />}
+    <footer className="journal-footer" data-exhibit-reveal><FlowButton variant="solid" text={ui.contestCta} onClick={() => requestScene(CONTEST_INDEX)} /><button type="button" className="collection-text-link" onClick={() => requestScene(ABOUT_INDEX)}>{ui.backAbout}</button></footer>
+  </div></section>
 }

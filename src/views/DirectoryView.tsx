@@ -1,91 +1,30 @@
-import TiltCard from '../components/TiltCard'
+import { useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
-import { TOPIC_INDEX } from '../lib/pages'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { TOPIC_INDEX, WORKS_INDEX } from '../lib/pages'
 import { setActiveTopicId } from '../lib/topicBus'
 import { requestScene } from '../lib/sceneBus'
+import { CreativeButton } from '../components/ui/creative-button'
 
-/** 创作主题索引：正史地图 / 半架空 / 全架空，点击进入主题子页 */
 export default function DirectoryView() {
-  const { content } = useContent()
-  const topics = content.topics
-  const members = content.members
-
-  const coverFor = (topicId: string) => {
-    const first = members.find((member) => member.topic === topicId)
-    return first ? first.work.image : 'maps/map-01.jpg'
-  }
-
-  const countFor = (topicId: string) => members.filter((member) => member.topic === topicId).length
-
-  return (
-    <section id="directory" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="scene-block text-center">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">
-            E 120° · 03 · TOPICS · {content.ui.directory.title}
-          </p>
-          <h1 className="mt-4 font-display text-5xl tracking-[0.14em] text-parchment-100 lg:text-7xl">
-            {content.ui.directory.title}
-          </h1>
-          <p className="mt-3 text-sm tracking-[0.2em] text-parchment-400">{content.ui.directory.subtitle}</p>
-        </div>
-
-        <div className="scene-block mt-12 grid gap-8 md:grid-cols-3">
-          {topics.map((topic, i) => (
-            <TiltCard key={topic.id} className="h-full">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTopicId(topic.id)
-                  requestScene(TOPIC_INDEX)
-                }}
-                className="group relative block h-full w-full overflow-hidden rounded-xl border border-white/10 bg-ink-950/45 text-left backdrop-blur-sm transition-all duration-300 hover:border-brand-500/50 hover:shadow-[0_0_36px_rgba(199,27,27,0.2)]"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden bg-ink-900">
-                  <img
-                    src={coverFor(topic.id)}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/20 to-transparent" />
-                  <span className="absolute bottom-3 left-4 font-mono text-[10px] tracking-[0.3em] text-brand-400">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                <div className="px-5 py-4">
-                  <EditableText
-                    as="h3"
-                    value={topic.name}
-                    path={`topics.${i}.name`}
-                    className="text-2xl tracking-[0.12em] text-parchment-100"
-                  />
-                  <EditableText
-                    as="p"
-                    multiline
-                    value={topic.desc}
-                    path={`topics.${i}.desc`}
-                    className="mt-2 text-sm leading-relaxed text-parchment-500"
-                  />
-                  {(topic.keywords ?? []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {(topic.keywords ?? []).map((keyword) => (
-                        <span key={keyword} className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[9px] tracking-[0.12em] text-parchment-500">
-                          {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <span className="mt-3 inline-block font-mono text-[10px] tracking-[0.2em] text-parchment-500 transition-colors group-hover:text-brand-400">
-                    {countFor(topic.id)} {content.ui.directory.enterSuffix}
-                  </span>
-                </div>
-              </button>
-            </TiltCard>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
+  const [active, setActive] = useState(content.topics[0]?.id ?? '')
+  const maps = exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative)
+  const ui = content.ui.exhibition
+  useExhibitionMotion(root, admin, content.topics.length)
+  return <section ref={root} id="directory" data-scroll-root className="atlas-night editorial-page relative h-full w-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <header className="editorial-centered"><h1 className="editorial-title mx-auto w-full max-w-6xl"><EditableText as="span" value={content.ui.directory.title} path="ui.directory.title" /></h1><EditableText as="p" value={ui.themeIntro} path="ui.exhibition.themeIntro" className="reading-copy" /></header>
+    <div className="theme-galleries">{content.topics.map((topic, index) => {
+      const works = maps.filter(({ work }) => work.topic === topic.id)
+      const cover = works[0]?.work
+      return <article key={topic.id} className={active === topic.id ? 'theme-gallery is-active' : 'theme-gallery'} onMouseEnter={() => setActive(topic.id)} onFocus={() => setActive(topic.id)} data-exhibit-reveal>
+        <button type="button" className="theme-cover" onClick={() => { setActiveTopicId(topic.id); requestScene(TOPIC_INDEX) }} aria-label={ui.enterGallery + '：' + topic.name}>{cover ? <img src={cover.image} alt={cover.title} loading="lazy" /> : <span>{ui.empty}</span>}<span className="theme-cover-action"><b>ENTER GALLERY</b><small>{ui.enterGallery} ↗</small></span></button>
+        <div className="theme-gallery-copy"><EditableText as="h2" value={topic.name} path={`topics.${index}.name`} /><EditableText as="p" multiline value={topic.desc} path={`topics.${index}.desc`} className="reading-copy" /><div className="editorial-keywords">{(topic.keywords ?? []).map((word, i) => <EditableText key={i} as="span" value={word} path={`topics.${index}.keywords.${i}`} />)}</div><span className="theme-map-count">{works.length} {ui.countUnit}</span></div>
+      </article>
+    })}</div>
+    <footer className="editorial-end"><EditableText as="p" value={ui.manifesto} path="ui.exhibition.manifesto" /><CreativeButton text={ui.browseCatalogue} onClick={() => requestScene(WORKS_INDEX)} /></footer>
+  </div></section>
 }

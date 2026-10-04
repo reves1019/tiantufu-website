@@ -24,7 +24,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
           onClick()
         }
       }}
-      className={`group relative block h-full w-full overflow-hidden rounded-lg border border-white/10 bg-ink-950/45 text-left backdrop-blur-sm transition-all duration-300 ${
+      className={`group relative block h-full w-full overflow-hidden rounded-lg border border-white/10 bg-ink-950/45 text-left backdrop-blur-sm transition-[border-color,box-shadow,opacity,transform] duration-300 ${
         canOpen
           ? 'cursor-pointer hover:border-brand-500/50 hover:shadow-[0_0_28px_rgba(199,27,27,0.18)]'
           : 'cursor-default opacity-70'
@@ -39,7 +39,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
               event.stopPropagation()
               onZoom()
             }}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 cursor-zoom-in items-center justify-center rounded-full border border-white/15 bg-ink-950/75 text-parchment-200 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100 hover:border-brand-500/70 hover:text-brand-400"
+            className="absolute right-3 top-3 z-20 flex h-9 w-9 cursor-zoom-in items-center justify-center rounded-full border border-white/15 bg-ink-950/75 text-parchment-200 opacity-0 backdrop-blur-md transition-[border-color,color,opacity,transform] duration-300 group-hover:opacity-100 hover:border-brand-500/70 hover:text-brand-400"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
@@ -80,7 +80,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
             path={`worksArchive.${workIndex}.author`}
             className="font-mono text-[10px] tracking-[0.18em] text-brand-400"
           />
-          <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-parchment-500 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+          <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-parchment-500 opacity-0 transition-[transform,opacity] duration-300 group-hover:translate-x-1 group-hover:opacity-100">
             {canOpen ? '进入作者页 →' : '作者未收录'}
           </span>
         </div>

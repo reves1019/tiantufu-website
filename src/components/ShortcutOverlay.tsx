@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react'
 import { site } from '../config/site'
+import { useContent } from '../lib/contentStore'
 import { requestScene } from '../lib/sceneBus'
+import { MOTION_PREFERENCE_EVENT, readMotionPreference, setMotionPreference, systemReducedMotion } from '../lib/motionPreference'
 
 /** 键盘快捷键：数字 1-6 切换主页面，B 返回上一页，? 打开/关闭提示面板 */
 export default function ShortcutOverlay() {
+  const { content } = useContent()
+  const navItems = content.site.nav?.length ? content.site.nav : site.nav
   const [open, setOpen] = useState(false)
+  const [motionMode, setMotionMode] = useState(readMotionPreference)
+  const [systemReduced, setSystemReduced] = useState(systemReducedMotion)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
+      if (target?.closest?.('.map-reader')) return
       if (target?.closest?.('input, textarea, [contenteditable="true"]')) return
       if (event.key === 'Escape') {
         setOpen(false)
@@ -36,6 +43,20 @@ export default function ShortcutOverlay() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  useEffect(() => {
+    const onMotionPreference = (event: Event) => {
+      const detail = (event as CustomEvent<{ preference?: 'system' | 'reduce' }>).detail
+      setMotionMode(detail?.preference === 'reduce' ? 'reduce' : 'system')
+      setSystemReduced(systemReducedMotion())
+    }
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+    return () => window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
+  }, [])
+
+  const toggleMotionPreference = () => {
+    setMotionPreference(motionMode === 'reduce' ? 'system' : 'reduce')
+  }
+
   if (!open) return null
 
   return (
@@ -52,7 +73,7 @@ export default function ShortcutOverlay() {
       >
         <p className="font-mono text-xs tracking-[0.5em] text-brand-400">SHORTCUTS · 快捷键</p>
         <div className="mt-5 space-y-3 font-mono text-xs tracking-[0.15em] text-parchment-300">
-          {site.nav.map((item, i) => (
+          {navItems.map((item, i) => (
             <div key={item.href} className="flex items-center justify-between gap-4">
               <span>{item.label}</span>
               <span className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-brand-400">{i + 1}</span>
@@ -69,6 +90,22 @@ export default function ShortcutOverlay() {
           <div className="flex items-center justify-between gap-4">
             <span>关闭 / 打开本面板</span>
             <span className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-brand-400">?</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3">
+            <div className="min-w-0">
+              <span className="block">动效偏好</span>
+              <span className="mt-1 block text-[10px] tracking-normal text-parchment-500">
+                {motionMode === 'reduce' ? '已减少动效' : systemReduced ? '跟随系统（当前已减少）' : '跟随系统'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="rounded border border-brand-400/60 bg-brand-500/10 px-3 py-1.5 text-[10px] tracking-[0.12em] text-brand-300 transition-[background-color,border-color,color,transform] hover:-translate-y-0.5 hover:bg-brand-500/20"
+              aria-pressed={motionMode === 'reduce'}
+              onClick={toggleMotionPreference}
+            >
+              {motionMode === 'reduce' ? '恢复系统' : '减少动效'}
+            </button>
           </div>
         </div>
         <p className="mt-6 border-t border-white/10 pt-4 font-mono text-[10px] tracking-[0.25em] text-parchment-500">

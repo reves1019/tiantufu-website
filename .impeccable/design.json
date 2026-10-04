@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T17:14:46.0216014+08:00",
+  "title": "Design System: 天图府 · 地图档案馆",
+  "extensions": {
+    "colorMeta": {
+      "cinnabar": {
+        "role": "primary",
+        "displayName": "朱红印记",
+        "tonalRamp": [
+          "oklch(15% 0.1485 29.60)",
+          "oklch(27% 0.1485 29.60)",
+          "oklch(38% 0.1485 29.60)",
+          "oklch(49% 0.1485 29.60)",
+          "oklch(61% 0.1485 29.60)",
+          "oklch(72% 0.1485 29.60)",
+          "oklch(83% 0.1485 29.60)",
+          "oklch(95% 0.1485 29.60)"
+        ]
+      },
+      "cinnabar-hover": {
+        "role": "primary",
+        "displayName": "朱红悬停",
+        "tonalRamp": [
+          "oklch(15% 0.1278 29.27)",
+          "oklch(27% 0.1278 29.27)",
+          "oklch(38% 0.1278 29.27)",
+          "oklch(49% 0.1278 29.27)",
+          "oklch(61% 0.1278 29.27)",
+          "oklch(72% 0.1278 29.27)",
+          "oklch(83% 0.1278 29.27)",
+          "oklch(95% 0.1278 29.27)"
+        ]
+      },
+      "cinnabar-focus": {
+        "role": "primary",
+        "displayName": "朱红焦点",
+        "tonalRamp": [
+          "oklch(15% 0.1443 29.51)",
+          "oklch(27% 0.1443 29.51)",
+          "oklch(38% 0.1443 29.51)",
+          "oklch(49% 0.1443 29.51)",
+          "oklch(61% 0.1443 29.51)",
+          "oklch(72% 0.1443 29.51)",
+          "oklch(83% 0.1443 29.51)",
+          "oklch(95% 0.1443 29.51)"
+        ]
+      },
+      "warm-paper": {
+        "role": "neutral",
+        "displayName": "暖纸",
+        "tonalRamp": [
+          "oklch(15% 0.0387 85.34)",
+          "oklch(27% 0.0387 85.34)",
+          "oklch(38% 0.0387 85.34)",
+          "oklch(49% 0.0387 85.34)",
+          "oklch(61% 0.0387 85.34)",
+          "oklch(72% 0.0387 85.34)",
+          "oklch(83% 0.0387 85.34)",
+          "oklch(95% 0.0387 85.34)"
+        ]
+      },
+      "paper-light": {
+        "role": "neutral",
+        "displayName": "浅纸",
+        "tonalRamp": [
+          "oklch(15% 0.0385 85.34)",
+          "oklch(27% 0.0385 85.34)",
+          "oklch(38% 0.0385 85.34)",
+          "oklch(49% 0.0385 85.34)",
+          "oklch(61% 0.0385 85.34)",
+          "oklch(72% 0.0385 85.34)",
+          "oklch(83% 0.0385 85.34)",
+          "oklch(95% 0.0385 85.34)"
+        ]
+      },
+      "paper-sheet": {
+        "role": "neutral",
+        "displayName": "地图纸页",
+        "tonalRamp": [
+          "oklch(15% 0.0482 87.02)",
+          "oklch(27% 0.0482 87.02)",
+          "oklch(38% 0.0482 87.02)",
+          "oklch(49% 0.0482 87.02)",
+          "oklch(61% 0.0482 87.02)",
+          "oklch(72% 0.0482 87.02)",
+          "oklch(83% 0.0482 87.02)",
+          "oklch(95% 0.0482 87.02)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "主墨",
+        "tonalRamp": [
+          "oklch(15% 0.0254 56.13)",
+          "oklch(27% 0.0254 56.13)",
+          "oklch(38% 0.0254 56.13)",
+          "oklch(49% 0.0254 56.13)",
+          "oklch(61% 0.0254 56.13)",
+          "oklch(72% 0.0254 56.13)",
+          "oklch(83% 0.0254 56.13)",
+          "oklch(95% 0.0254 56.13)"
+        ]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "次墨",
+        "tonalRamp": [
+          "oklch(15% 0.0395 63.34)",
+          "oklch(27% 0.0395 63.34)",
+          "oklch(38% 0.0395 63.34)",
+          "oklch(49% 0.0395 63.34)",
+          "oklch(61% 0.0395 63.34)",
+          "oklch(72% 0.0395 63.34)",
+          "oklch(83% 0.0395 63.34)",
+          "oklch(95% 0.0395 63.34)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "淡墨",
+        "tonalRamp": [
+          "oklch(15% 0.0461 71.35)",
+          "oklch(27% 0.0461 71.35)",
+          "oklch(38% 0.0461 71.35)",
+          "oklch(49% 0.0461 71.35)",
+          "oklch(61% 0.0461 71.35)",
+          "oklch(72% 0.0461 71.35)",
+          "oklch(83% 0.0461 71.35)",
+          "oklch(95% 0.0461 71.35)"
+        ]
+      },
+      "archive-dark": {
+        "role": "neutral",
+        "displayName": "档案室深墨",
+        "tonalRamp": [
+          "oklch(15% 0.0070 78.10)",
+          "oklch(27% 0.0070 78.10)",
+          "oklch(38% 0.0070 78.10)",
+          "oklch(49% 0.0070 78.10)",
+          "oklch(61% 0.0070 78.10)",
+          "oklch(72% 0.0070 78.10)",
+          "oklch(83% 0.0070 78.10)",
+          "oklch(95% 0.0070 78.10)"
+        ]
+      },
+      "reader-dark": {
+        "role": "neutral",
+        "displayName": "阅读桌深墨",
+        "tonalRamp": [
+          "oklch(15% 0.0079 95.46)",
+          "oklch(27% 0.0079 95.46)",
+          "oklch(38% 0.0079 95.46)",
+          "oklch(49% 0.0079 95.46)",
+          "oklch(61% 0.0079 95.46)",
+          "oklch(72% 0.0079 95.46)",
+          "oklch(83% 0.0079 95.46)",
+          "oklch(95% 0.0079 95.46)"
+        ]
+      },
+      "viewport-dark": {
+        "role": "neutral",
+        "displayName": "图窗深墨",
+        "tonalRamp": [
+          "oklch(15% 0.0043 106.91)",
+          "oklch(27% 0.0043 106.91)",
+          "oklch(38% 0.0043 106.91)",
+          "oklch(49% 0.0043 106.91)",
+          "oklch(61% 0.0043 106.91)",
+          "oklch(72% 0.0043 106.91)",
+          "oklch(83% 0.0043 106.91)",
+          "oklch(95% 0.0043 106.91)"
+        ]
+      },
+      "archive-title": {
+        "role": "neutral",
+        "displayName": "档案标题纸色",
+        "tonalRamp": [
+          "oklch(15% 0.0276 83.54)",
+          "oklch(27% 0.0276 83.54)",
+          "oklch(38% 0.0276 83.54)",
+          "oklch(49% 0.0276 83.54)",
+          "oklch(61% 0.0276 83.54)",
+          "oklch(72% 0.0276 83.54)",
+          "oklch(83% 0.0276 83.54)",
+          "oklch(95% 0.0276 83.54)"
+        ]
+      },
+      "archive-copy": {
+        "role": "neutral",
+        "displayName": "档案正文纸色",
+        "tonalRamp": [
+          "oklch(15% 0.0382 84.57)",
+          "oklch(27% 0.0382 84.57)",
+          "oklch(38% 0.0382 84.57)",
+          "oklch(49% 0.0382 84.57)",
+          "oklch(61% 0.0382 84.57)",
+          "oklch(72% 0.0382 84.57)",
+          "oklch(83% 0.0382 84.57)",
+          "oklch(95% 0.0382 84.57)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "首页场景标题",
+        "purpose": "已有建筑文字帘场景标题；手机最终32px。"
+      },
+      "headline": {
+        "displayName": "馆藏标题",
+        "purpose": "馆藏页开场标题。"
+      },
+      "title": {
+        "displayName": "作品标题",
+        "purpose": "馆藏纸页下方作品名称。"
+      },
+      "body": {
+        "displayName": "阅读正文",
+        "purpose": "纸面札记与阅读说明。"
+      },
+      "label": {
+        "displayName": "档案标签",
+        "purpose": "计数、页签与小标签。"
+      },
+      "button-label": {
+        "displayName": "印章按钮文字",
+        "purpose": "继承的朱红实底按钮使用13px衬线。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-card-rest",
+        "value": "0 8px 24px #5a402309",
+        "purpose": "公共纸面继承容器。"
+      },
+      {
+        "name": "paper-card-hover",
+        "value": "0 10px 30px #5a402318",
+        "purpose": "公共纸面继承容器悬停。"
+      },
+      {
+        "name": "folio-sheet",
+        "value": "0 6px 18px #0004",
+        "purpose": "馆藏纸页局部纸影。"
+      },
+      {
+        "name": "roof-poster",
+        "value": "drop-shadow(12px 17px 10px #5b422b25)",
+        "purpose": "已有屋顶海报投影；CSS filter而非box-shadow。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "paper-action",
+        "value": ".2s ease",
+        "purpose": "纸面按钮颜色变化。"
+      },
+      {
+        "name": "folio-lift",
+        "value": ".45s cubic-bezier(.2,.7,.2,1)",
+        "purpose": "纸页抬升；减少动态时取消。"
+      },
+      {
+        "name": "curtain-enter",
+        "value": ".85s cubic-bezier(.22,.68,.1,1)",
+        "purpose": "屋顶文字帘切入。"
+      },
+      {
+        "name": "curtain-leave",
+        "value": ".85s cubic-bezier(.52,0,.25,1)",
+        "purpose": "屋顶文字帘切出。"
+      },
+      {
+        "name": "scene-copy",
+        "value": ".65s ease",
+        "purpose": "场景说明入场；减少动态时取消。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "archive-two-column-max",
+        "value": "1100px"
+      },
+      {
+        "name": "mobile-max",
+        "value": "767px"
+      },
+      {
+        "name": "navigation-expanded-min",
+        "value": "768px"
+      },
+      {
+        "name": "author-two-column-min",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "朱红主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "继承的纸面明确主行动；主页入口另用下划线文字。",
+      "html": "<button type=\"button\" class=\"ds-primary\">进入馆藏 <span aria-hidden=\"true\">↗</span></button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:space-between;gap:24px;min-height:44px;padding:11px 18px;font-family:var(--font-display,\"Noto Serif SC\",\"Playfair Display\",\"STSong\",\"SimSun\",serif);font-size:13px;background:#a33428;color:#f8ecd2;border:1px solid #8a2d22;border-radius:2px;transition:background .2s ease,color .2s ease}.ds-primary:hover{background:#82261d}.ds-primary:focus-visible{outline:2px solid #a33428;outline-offset:3px;}"
+    },
+    {
+      "name": "首页文字入口",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "主要首页入口以可见下划线和短箭头指向馆藏。",
+      "html": "<button type=\"button\" class=\"ds-enter\">阅读地图 <span aria-hidden=\"true\">↗</span></button>",
+      "css": ".ds-enter{display:inline-flex;align-items:center;gap:18px;min-height:44px;padding:5px 0;font-family:var(--font-body,system-ui,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif);font-size:12px;color:#8b3024;background:transparent;border:0;border-bottom:1px solid #70563b}.ds-enter span{transition:transform .2s}.ds-enter:hover{color:#a33428}.ds-enter:hover span{transform:translate(2px,-2px)}.ds-enter:focus-visible{outline:2px solid #a33428;outline-offset:3px;}"
+    },
+    {
+      "name": "暖纸导航",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "当前项为主墨加朱红细线；其他项退为次墨。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"示例导航\"><button type=\"button\" aria-current=\"page\">首页</button><button type=\"button\">馆藏</button><button type=\"button\">关于</button></nav>",
+      "css": ".ds-nav{display:flex;gap:24px;background:#e5d8bd;padding:18px 22px}.ds-nav button{position:relative;padding:4px 0;border:0;background:transparent;color:#594533;font-family:var(--font-body,system-ui,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif);font-size:13px;letter-spacing:.04em;transition:color .3s}.ds-nav button[aria-current=\"page\"],.ds-nav button:hover{color:#32251c}.ds-nav button[aria-current=\"page\"]::after{content:\"\";position:absolute;left:0;right:0;bottom:-6px;height:1px;background:#a33428}.ds-nav button:focus-visible{outline:2px solid #a33428;outline-offset:3px;}"
+    },
+    {
+      "name": "馆藏主题筛选",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "选中态采用微红底、纸色字与朱红边线。",
+      "html": "<div class=\"ds-filters\" role=\"group\" aria-label=\"示例主题筛选\"><button type=\"button\" aria-pressed=\"true\">全部<span>03</span></button><button type=\"button\" aria-pressed=\"false\">山川<span>01</span></button></div>",
+      "css": ".ds-filters{display:flex;flex-wrap:wrap;gap:8px;background:#100e0b;padding:16px}.ds-filters button{min-height:44px;padding:10px 16px;font-family:var(--font-body,system-ui,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif);font-size:13px;color:#d5c9b2;border:1px solid #e5d8bd30;background:#181610a8;border-radius:0}.ds-filters button[aria-pressed=\"true\"]{border-color:#b24836;color:#fff1d8;background:#92352433}.ds-filters button span{margin-left:12px;opacity:.65;font-size:11px}.ds-filters button:focus-visible{outline:2px solid #e04747;outline-offset:3px}"
+    },
+    {
+      "name": "展开筛选字段",
+      "kind": "input",
+      "refersTo": "filter-select",
+      "description": "实际字段为原生 select；不代表其他管理表单。",
+      "html": "<label class=\"ds-field\">类别<select aria-label=\"类别\"><option>全部类别</option><option>地形地图</option></select></label>",
+      "css": ".ds-field{display:flex;align-items:center;gap:12px;font-family:var(--font-body,system-ui,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif);font-size:12px;color:#d0c3a9;background:#100e0b;padding:16px}.ds-field select{max-width:220px;min-height:44px;background:#181610;border:1px solid #e5d8bd30;padding:8px;color:#e5d8bd}.ds-field select:focus-visible{outline:2px solid #e04747;outline-offset:3px}"
+    },
+    {
+      "name": "馆藏档案纸页",
+      "kind": "card",
+      "refersTo": "folio-sheet",
+      "description": "纸页结构预览；空白图区代表真实地图位置，不提供替代品牌素材或虚构作品。",
+      "html": "<article class=\"ds-folio\"><button type=\"button\" class=\"ds-folio-cover\"><span class=\"ds-folio-tab\">01 / 馆藏</span><span class=\"ds-folio-sheet\"><span class=\"ds-folio-placeholder\">地图原图区域</span><span class=\"ds-folio-read\">阅读地图 ↗</span></span></button><h2>作品名称</h2><p>类别 · 作者</p></article>",
+      "css": ".ds-folio{background:#100e0b;padding:28px 12px 16px;max-width:400px}.ds-folio-cover{position:relative;display:block;width:100%;padding:23px 9px 10px;background:#9b88644d;border:1px solid #ad98734a;text-align:left;border-radius:0}.ds-folio-tab{position:absolute;left:-1px;top:-17px;height:34px;display:flex;align-items:center;padding:0 16px;background:#433b2b;border:1px solid #ad98734a;border-bottom:0;font-family:var(--font-mono,ui-monospace,Consolas,monospace);font-size:10px;color:#ddceaf;letter-spacing:.1em}.ds-folio-sheet{position:relative;display:block;aspect-ratio:3/2;background:#dfd0ae;box-shadow:0 6px 18px #0004;transition:transform .45s cubic-bezier(.2,.7,.2,1)}.ds-folio-placeholder{display:grid;place-items:center;height:100%;color:#756047;font-family:var(--font-body,system-ui,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif);font-size:12px}.ds-folio-read{position:absolute;right:8px;bottom:8px;background:#30251ced;color:#f3e7cd;padding:10px 12px;font-size:11px;letter-spacing:.08em}.ds-folio h2{color:#eee2cb;font-family:var(--font-display,\"Noto Serif SC\",\"Playfair Display\",\"STSong\",\"SimSun\",serif);font-size:22px;line-height:1.6;margin:18px 0 0}.ds-folio p{font-size:11px;color:#b6a88c;margin:3px 0 0}.ds-folio-cover:hover .ds-folio-sheet,.ds-folio-cover:focus-visible .ds-folio-sheet{transform:translateY(-12px) rotate(-1deg)}.ds-folio-cover:focus-visible{outline:2px solid #e04747;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-folio-sheet{transition:none}.ds-folio-cover:hover .ds-folio-sheet,.ds-folio-cover:focus-visible .ds-folio-sheet{transform:none}}"
+    },
+    {
+      "name": "阅读器关闭",
+      "kind": "button",
+      "refersTo": "reader-close",
+      "description": "直角工具控件与内联 SVG 关闭标记。",
+      "html": "<div class=\"ds-close-stage\"><button type=\"button\" class=\"ds-close\" aria-label=\"关闭阅读器\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"m6 6 12 12M18 6 6 18\"/></svg></button></div>",
+      "css": ".ds-close-stage{background:#161511;padding:16px}.ds-close{width:44px;height:44px;display:grid;place-items:center;border:1px solid #ad98734a;border-radius:0;background:transparent;color:#e8dcc3}.ds-close:focus-visible{outline:2px solid #e04747;outline-offset:3px}"
+    },
+    {
+      "name": "首页场景页签",
+      "kind": "custom",
+      "refersTo": "scene-selector",
+      "description": "侧边签名场景选择器；示例省略已有屋顶图片，保留轮廓容器和动作。",
+      "html": "<button type=\"button\" class=\"ds-scene\" aria-label=\"下一场景\"><span class=\"ds-roof-slot\" aria-hidden=\"true\"></span><span>下一场景</span></button>",
+      "css": ".ds-scene{width:83px;min-height:86px;padding:10px 6px 7px;border:1px solid #70533466;font-family:var(--font-display,\"Noto Serif SC\",\"Playfair Display\",\"STSong\",\"SimSun\",serif);color:#463225;font-size:12px;background:#e5d8bd40;transition:border-color .2s,background .2s}.ds-roof-slot{display:block;height:32px;margin-bottom:7px}.ds-scene span{display:block}.ds-scene:hover{border-color:#a33428;background:#f2e4c388}.ds-scene:disabled{cursor:wait}.ds-scene:focus-visible{outline:2px solid #a33428;outline-offset:3px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "地图档案馆",
+    "overview": "以已确认的“地图档案馆”为视觉北极星：暖纸、墨色与朱红承接天图府现有指南针印记、哑光屋顶和文字帘。首页保留可触发的建筑场景；馆藏与阅读器转入安静的深墨阅读桌；作者页回到纸面。深浅变化是同一种材料的两面，不是另起一套霓虹身份。\n\n地图原图与真实作者内容优先，界面负责编目、进入、放大和阅读。纸纤维、水墨边纹、细描边和受控的纸页抬升提供质感，避免塑料高光与泛滥霓虹；不为装饰编造作者手记、人数或历史事实。\n\n本文件扫描当前首页、馆藏、作者页与地图阅读器的实现。管理员界面及其他继承页面不在本页组的视觉 QA 范围；本轮四项修正复核通过不等于全站、全部折叠以下内容或云端权限已验收。",
+    "keyCharacteristics": [
+      "暖纸 / 深墨双材料场景，朱红负责行动与定位。",
+      "衬线中文标题、系统正文、等宽档案编号。",
+      "地图主阅读入口完整呈现，缩略图仅用于导航。",
+      "哑光屋顶、文字帘和指南针印记作为既有签名。",
+      "清楚的阅读入口、作者入口、筛选状态与键盘焦点。"
+    ],
+    "rules": [
+      {
+        "name": "The Material Continuity Rule",
+        "body": "纸面与深墨阅读桌共享同一复古材料语言；不得用塑料高光或霓虹替代。",
+        "section": "colors"
+      },
+      {
+        "name": "The Heading First Rule",
+        "body": "主要页标题直接开场；档案编号放在纸页标签、阅读器计数和页脚，不在标题上方堆叠编号眉题。",
+        "section": "typography"
+      },
+      {
+        "name": "The Artwork First Rule",
+        "body": "馆藏纸页和主阅读画布完整适配地图；作者附加缩略图允许裁切，但不能把缩略图当主阅读图。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 沿用已确认的暖纸、墨色、朱红与既有品牌资产。",
+      "Do 用完整地图、可见的“阅读地图”入口和独立作者入口建立阅读顺序。",
+      "Do 保留筛选、返回位置、键盘焦点和减少动态偏好。",
+      "Do 明确标注待作者补充的札记，保持真实内容和公开/管理库边界。"
+    ],
+    "donts": [
+      "Don't 引入塑料、霓虹或另一套视觉世界。",
+      "Don't 用装饰编号眉题挤占主要标题前的注意力。",
+      "Don't 把主阅读地图裁成卡片封面，或添加遮挡地图的图片光标拖尾。",
+      "Don't 把本页组修正验收写成全站、云端账号或生产部署已通过。"
+    ]
+  }
+}
+

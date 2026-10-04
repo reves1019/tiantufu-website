@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
 
 interface Particle {
   x: number
@@ -31,7 +32,7 @@ export default function NoiseField() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let reduced = isMotionReduced()
     let width = 0
     let height = 0
     let dpr = 1
@@ -105,12 +106,21 @@ export default function NoiseField() {
       if (!reduced) raf = requestAnimationFrame(draw)
     }
 
+    const onMotionPreference = () => {
+      reduced = isMotionReduced()
+      cancelAnimationFrame(raf)
+      raf = 0
+      if (reduced) draw(0)
+      else raf = requestAnimationFrame(draw)
+    }
     if (reduced) draw(0)
     else raf = requestAnimationFrame(draw)
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
 
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, onMotionPreference)
     }
   }, [])
 

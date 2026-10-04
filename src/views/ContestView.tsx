@@ -1,143 +1,42 @@
-import TiltCard from '../components/TiltCard'
+import { useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
+import Lightbox from '../components/Lightbox'
 import { useContent } from '../lib/contentStore'
 import { NEWS_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { safePublicUrl } from '../lib/memberProfile'
+import { CreativeButton, CreativeButtonLink } from '../components/ui/creative-button'
 
-/** 单图制图大赛页：往届数据 / 获奖名单 / 优秀作品 / 细则 / B站宣传视频 */
 export default function ContestView() {
-  const { content } = useContent()
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const [reading, setReading] = useState<number | null>(null)
   const contest = content.contest
-  const members = content.members
-
-  return (
-    <section id="contest" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-28 lg:px-12">
-        {/* 顶部标题 + 返回 */}
-        <div className="scene-block flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 10 · CONTEST · 赛事活动</p>
-            <EditableText
-              as="h1"
-              value={contest.title}
-              path="contest.title"
-              className="mt-3 w-full font-display text-3xl tracking-[0.1em] text-parchment-100 sm:text-4xl lg:text-6xl"
-            />
-            <EditableText
-              as="p"
-              value={contest.subtitle}
-              path="contest.subtitle"
-              className="mt-2 font-serif-en text-sm italic tracking-[0.3em] text-parchment-400"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => requestScene(NEWS_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-6 py-2.5 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            ← 返回
-          </button>
-        </div>
-
-        {/* 往届数据 + 获奖名单 */}
-        <div className="scene-block mt-10 grid gap-6 lg:grid-cols-2">
-          <div>
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">往届数据</p>
-            <div className="mt-4 space-y-3">
-              {contest.editions.map((edition, i) => (
-                <div
-                  key={edition.edition}
-                  className="flex flex-wrap items-center gap-4 rounded-lg border border-white/10 bg-ink-950/45 px-5 py-4 backdrop-blur-sm"
-                >
-                  <span className="font-mono text-sm text-brand-400">#{String(i + 1).padStart(2, '0')}</span>
-                  <span className="text-lg tracking-[0.12em] text-parchment-100">{edition.edition}</span>
-                  <span className="ml-auto font-mono text-xs tracking-[0.1em] text-parchment-500">
-                    {edition.year} · 参赛 {edition.participants} · 获奖 {edition.awards}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">获奖者名单</p>
-            <div className="mt-4 space-y-3">
-              {contest.winners.map((winner) => (
-                <div key={winner.edition} className="rounded-lg border border-white/10 bg-ink-950/45 px-5 py-4 backdrop-blur-sm">
-                  <p className="font-mono text-xs tracking-[0.2em] text-brand-400">{winner.edition}</p>
-                  <p className="mt-2 text-sm tracking-[0.12em] text-parchment-300">{winner.names.join(' · ')}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 往届优秀作品（占位：网格，后续可改瀑布流/轮播） */}
-        <p className="scene-block mt-10 font-mono text-xs tracking-[0.35em] text-brand-400">往届优秀作品（占位 · 后续可调整为瀑布流/轮播）</p>
-        <div className="scene-block mt-4 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {(contest.works ?? []).map((work, i) => {
-            const author = members.find((member) => member.name === work.author)
-            return (
-              <TiltCard key={`${work.title}-${i}`} className="h-full">
-                <div className="group h-full overflow-hidden rounded-lg border border-white/10 bg-ink-950/45 backdrop-blur-sm">
-                  <div className="aspect-[16/10] overflow-hidden bg-ink-900">
-                    <img
-                      src={work.image}
-                      alt={work.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <img
-                      src={author?.avatar ?? members[0]?.avatar}
-                      alt=""
-                      loading="lazy"
-                      className="h-8 w-8 rounded-full border border-brand-500/50 bg-ink-900 object-cover"
-                    />
-                    <div className="min-w-0">
-                      <EditableText as="p" value={work.title} path={`contest.works.${i}.title`} className="truncate text-sm text-parchment-100" />
-                      <EditableText as="p" value={work.author} path={`contest.works.${i}.author`} className="truncate text-[10px] text-parchment-500" />
-                    </div>
-                    <span className="ml-auto shrink-0 rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 font-mono text-[9px] tracking-[0.15em] text-brand-400">
-                      {work.edition}
-                    </span>
-                  </div>
-                  <EditableText as="p" multiline value={work.desc} path={`contest.works.${i}.desc`} className="px-4 pb-4 text-xs leading-relaxed text-parchment-500" />
-                </div>
-              </TiltCard>
-            )
-          })}
-        </div>
-
-        {/* 比赛细则 + B站宣传视频 */}
-        <div className="scene-block mt-10 grid gap-6 pb-6 lg:grid-cols-[1.2fr_1fr]">
-          <div className="rounded-lg border border-white/10 bg-ink-950/45 p-6 backdrop-blur-sm">
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">比赛细则</p>
-            <EditableText
-              as="p"
-              multiline
-              value={contest.rules}
-              path="contest.rules"
-              className="mt-3 text-sm leading-relaxed text-parchment-300"
-            />
-          </div>
-          <a
-            href={contest.videoUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="group flex flex-col items-center justify-center rounded-lg border border-white/10 bg-ink-950/45 p-6 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/60"
-          >
-            <span className="text-3xl text-brand-400 transition-transform duration-300 group-hover:scale-110">▶</span>
-            <p className="mt-3 font-mono text-xs tracking-[0.3em] text-brand-400">B 站宣传视频</p>
-            <EditableText
-              as="span"
-              value={contest.videoUrl}
-              path="contest.videoUrl"
-              className="mt-2 w-full break-all text-center text-[10px] text-parchment-500"
-            />
-          </a>
-        </div>
-      </div>
+  const ui = content.ui.contest
+  const works = contest.works ?? []
+  const editions = [...new Set([...contest.editions.map((entry) => entry.edition), ...works.map((entry) => entry.edition)])]
+  const active = selected && editions.includes(selected) ? selected : null
+  const shown = works.map((work, index) => ({ work, index })).filter(({ work }) => !active || work.edition === active)
+  const draft = /20XX|占位|获奖者一/.test(JSON.stringify(contest))
+  const video = !/xxxxxx|占位/i.test(contest.videoUrl) ? safePublicUrl(contest.videoUrl) : null
+  const images = shown.map(({ work }) => {
+    const source = content.members.find((member) => member.work.image === work.image)
+    return { src: source?.work.fullImage || work.image, title: work.title, author: work.author, desc: work.desc }
+  })
+  useExhibitionMotion(root, admin, `${active}-${shown.length}`)
+  return <section ref={root} id="contest" aria-label={contest.title} data-scroll-root className="atlas-night editorial-page contest-archive h-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <CreativeButton direction="top" text={ui.back} onClick={() => requestScene(NEWS_INDEX)} />
+    <header className="contest-header" data-exhibit-reveal><p className="linear-modal-kicker">{ui.kicker}</p><EditableText as="h1" value={contest.title} path="contest.title" className="editorial-title w-full max-w-6xl" /><EditableText as="p" value={contest.subtitle} path="contest.subtitle" className="reading-copy" /></header>
+    {draft && <EditableText as="p" value={ui.draftNotice} path="ui.contest.draftNotice" className="archive-notice" />}
+    <section className="contest-editions" aria-label={ui.editionsTitle}><EditableText as="h2" value={ui.editionsTitle} path="ui.contest.editionsTitle" /><div className="edition-ledger">{contest.editions.map((edition, i) => <article key={i} data-exhibit-reveal aria-label={`${edition.edition} · ${edition.year}`}><div><EditableText as="h3" value={edition.edition} path={`contest.editions.${i}.edition`} /><EditableText as="p" value={edition.year} path={`contest.editions.${i}.year`} /></div><dl><div><dt>{ui.participantsLabel}</dt><dd><EditableText value={edition.participants} path={`contest.editions.${i}.participants`} /></dd></div><div><dt>{ui.awardsLabel}</dt><dd><EditableText value={edition.awards} path={`contest.editions.${i}.awards`} /></dd></div></dl></article>)}</div></section>
+    <section className="contest-gallery" aria-label={ui.worksTitle}><EditableText as="h2" value={ui.worksTitle} path="ui.contest.worksTitle" /><div className="journal-filter" role="group" aria-label={ui.filterLabel} aria-controls="contest-results">{[null, ...editions].map((edition) => <button type="button" key={edition ?? 'all'} aria-pressed={active === edition} onClick={() => { setSelected(edition); setReading(null) }}>{edition ?? ui.allEditions}<span aria-hidden="true">{edition ? works.filter((work) => work.edition === edition).length : works.length}</span></button>)}</div>
+      <p className="reading-copy mt-4" role="status" aria-live="polite">{active ? `${active} · ` : ''}共 {shown.length} 幅优秀作品</p>
+      <div id="contest-results" className="contest-map-grid">{shown.map(({ work, index }, i) => <article key={index} data-exhibit-reveal aria-label={`${work.title} · ${work.author}`}><button type="button" className="contest-map-cover" onClick={() => setReading(i)} aria-label={`${content.ui.works.readMap} · ${work.title}`}><img src={work.image} alt={work.title} loading="lazy" data-exhibit-image /><span>{content.ui.works.readMap} ↗</span></button><div className="contest-map-caption"><EditableText as="h3" value={work.title} path={`contest.works.${index}.title`} /><span>{work.edition}</span></div><EditableText as="p" value={work.author} path={`contest.works.${index}.author`} className="contest-map-author" /><EditableText as="p" multiline value={work.desc} path={`contest.works.${index}.desc`} className="reading-copy" />{/占位/.test(work.title + work.desc) && <p className="archive-sample-label">{ui.sampleWork}</p>}</article>)}</div>
+      {!shown.length && <p className="journal-empty reading-copy" role="status">{ui.noWorks}</p>}
     </section>
-  )
+    <div className="contest-colophon"><section aria-label={ui.winnersTitle}><EditableText as="h2" value={ui.winnersTitle} path="ui.contest.winnersTitle" />{contest.winners.filter((winner) => !active || winner.edition === active).map((winner) => { const index = contest.winners.indexOf(winner); return <div className="contest-winner" key={index}><EditableText as="h3" value={winner.edition} path={`contest.winners.${index}.edition`} /><div>{winner.names.map((name, i) => <EditableText key={i} as="p" value={name} path={`contest.winners.${index}.names.${i}`} />)}</div></div> })}</section><section data-exhibit-reveal aria-label={ui.rulesTitle}><EditableText as="h2" value={ui.rulesTitle} path="ui.contest.rulesTitle" /><EditableText as="p" multiline value={contest.rules} path="contest.rules" className="reading-copy" /></section></div>
+    <footer className="journal-footer">{video ? <CreativeButtonLink text={ui.videoTitle} href={video} target="_blank" rel="noopener noreferrer" /> : <p className="reading-copy">{ui.videoPending}</p>}<CreativeButton direction="top" text={ui.back} onClick={() => requestScene(NEWS_INDEX)} /></footer>
+  </div>{reading !== null && images[reading] && <Lightbox images={images} index={reading} onClose={() => setReading(null)} onIndexChange={setReading} />}</section>
 }

@@ -1,45 +1,23 @@
+import { useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
-import { ABOUT_INDEX } from '../lib/pages'
+import { ABOUT_INDEX, JOIN_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
+import { CreativeButton } from '../components/ui/creative-button'
 
-/** 社团文化子页：文化理念与活动（占位） */
 export default function CultureView() {
-  const { content } = useContent()
-  const culture = content.about.culture
-
-  return (
-    <section id="culture" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="scene-block">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 09 · CULTURE · 社团文化</p>
-          <h1 className="mt-4 font-display text-5xl tracking-[0.14em] text-parchment-100 lg:text-6xl">
-            {content.ui.culture.title}
-          </h1>
-          <p className="mt-3 text-sm tracking-[0.2em] text-parchment-400">{content.ui.culture.subtitle}</p>
-        </div>
-
-        <div className="scene-block mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {culture.map((item, i) => (
-            <div
-              key={item.title}
-              className="rounded-lg border border-white/10 bg-ink-950/45 p-6 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/50"
-            >
-              <p className="font-mono text-[10px] text-brand-400">{String(i + 1).padStart(2, '0')}</p>
-              <EditableText as="h3" value={item.title} path={`about.culture.${i}.title`} className="mt-2 text-lg tracking-[0.1em] text-parchment-100" />
-              <EditableText as="p" multiline value={item.desc} path={`about.culture.${i}.desc`} className="mt-2 text-sm leading-relaxed text-parchment-500" />
-            </div>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => requestScene(ABOUT_INDEX)}
-          className="scene-block mt-10 rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-        >
-          {content.ui.culture.backAbout}
-        </button>
-      </div>
-    </section>
-  )
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
+  const [opened, setOpened] = useState<number | null>(0)
+  const ui = content.ui.culture
+  const maps = exhibitionCatalog(content.worksArchive, content.members, '地图')
+  useExhibitionMotion(root, admin, opened ?? -1)
+  return <section ref={root} id="culture" data-scroll-root className="atlas-night editorial-page h-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <button className="collection-text-link" onClick={() => requestScene(ABOUT_INDEX)}>{ui.backAbout}</button>
+    <header className="journal-header culture-header"><div><EditableText as="h1" value={ui.title} path="ui.culture.title" className="editorial-title w-full max-w-6xl" /><EditableText as="p" multiline value={ui.subtitle} path="ui.culture.subtitle" className="reading-copy" /></div><div className="culture-map-strip" aria-hidden="true">{maps.slice(0, 3).map(({ work }) => <img key={work.id} src={work.image} alt="" loading="lazy" />)}</div></header>
+    <div className="culture-ledger">{content.about.culture.map((item, i) => { const isOpen = opened === i || admin; return <article key={i} className={`culture-entry ${isOpen ? 'is-open' : ''}`}><h2><button aria-expanded={isOpen} aria-controls={`culture-body-${i}`} onClick={() => setOpened(opened === i ? null : i)}><span>{item.title}</span><span aria-hidden="true">{isOpen ? '−' : '+'}</span></button></h2>{admin && <EditableText value={item.title} path={`about.culture.${i}.title`} />}<div className="culture-entry-reveal" id={`culture-body-${i}`} ref={(element) => { if (element) element.inert = !isOpen }} aria-hidden={!isOpen}><div><EditableText as="p" multiline value={item.desc} path={`about.culture.${i}.desc`} className="reading-copy" /></div></div></article> })}</div>
+    <footer className="journal-footer" data-exhibit-reveal><CreativeButton text={content.ui.contact.joinCard} onClick={() => requestScene(JOIN_INDEX)} /><CreativeButton direction="top" text={ui.backAbout} onClick={() => requestScene(ABOUT_INDEX)} /></footer>
+  </div></section>
 }

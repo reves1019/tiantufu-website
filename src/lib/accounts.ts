@@ -3,16 +3,24 @@
  * - 三个预置管理员账号（对应现有三位成员：笙茗Reves / 圣雄肝帝 / 子虚的白菜）
  * - 访客只能注册成员账号（status=pending），需管理员在「账号管理」中审核
  * - 审核通过后自动生成该成员的个人主页与作品集入口
- * 注意：账号与内容一样保存在浏览器（账号 localStorage / 内容 IndexedDB），
- * 跨设备协作请使用管理员模式里的「导出 / 导入 JSON」同步。
+ * 注意：该站点目前是静态前端，账号只保存在当前浏览器；同浏览器标签页可实时同步，
+ * 跨设备协作仍需导出/导入，真正的公网实时同步需要配置服务端存储与鉴权。
  */
 
 export type AccountRole = 'admin' | 'member'
 export type AccountStatus = 'approved' | 'pending' | 'rejected'
 
+export interface AccountLoginAlias {
+  username: string
+  salt: string
+  passwordHash: string
+}
+
 export interface AccountRecord {
   id: string
   username: string
+  /** Supabase 邮箱身份；离线本地账号不需要邮箱字段 */
+  email?: string
   displayName: string
   role: AccountRole
   status: AccountStatus
@@ -26,6 +34,10 @@ export interface AccountRecord {
   note?: string
   /** 创作主题偏好（管理员审核时可调整） */
   topic?: string
+  /** 个人公开头像；与成员主页的头像保持同步 */
+  avatar?: string
+  /** 旧版管理员登录名迁移为预设管理员的别名，不增加管理员账号数量 */
+  loginAliases?: AccountLoginAlias[]
   createdAt: number
   updatedAt: number
 }
@@ -39,7 +51,7 @@ export interface AccountPreset {
   defaultPassword: string
 }
 
-const ACCOUNTS_KEY = 'ttf-accounts-v2'
+export const ACCOUNTS_STORAGE_KEY = 'ttf-accounts-v2'
 const SESSION_KEY = 'ttf-session-v2'
 const REMEMBER_KEY = 'ttf-session-remember-v2'
 
@@ -102,9 +114,8 @@ export function uid(prefix = 'acct'): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function loadAccounts(): AccountRecord[] {
+export function parseAccounts(raw: string | null): AccountRecord[] {
   try {
-    const raw = localStorage.getItem(ACCOUNTS_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -113,20 +124,43 @@ export function loadAccounts(): AccountRecord[] {
         a &&
         typeof a.id === 'string' &&
         typeof a.username === 'string' &&
-        typeof a.role === 'string' &&
+        (a.role === 'admin' || a.role === 'member') &&
+        (a.status === 'approved' || a.status === 'pending' || a.status === 'rejected') &&
         typeof a.salt === 'string' &&
         typeof a.passwordHash === 'string',
-    )
+    ).map((a) => ({
+      ...a,
+      loginAliases: Array.isArray(a.loginAliases)
+        ? a.loginAliases.filter(
+            (alias: unknown) =>
+              !!alias &&
+              typeof alias === 'object' &&
+              typeof (alias as AccountLoginAlias).username === 'string' &&
+              typeof (alias as AccountLoginAlias).salt === 'string' &&
+              typeof (alias as AccountLoginAlias).passwordHash === 'string',
+          )
+        : [],
+    }))
   } catch {
     return []
   }
 }
 
-export function saveAccounts(accounts: AccountRecord[]): void {
+export function loadAccounts(): AccountRecord[] {
   try {
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts))
+    return parseAccounts(localStorage.getItem(ACCOUNTS_STORAGE_KEY))
   } catch {
-    // 存储不可用时账号体系降级为内存态（会提示管理员导出/清理）
+    return []
+  }
+}
+
+/** 返回真实写入结果，避免静默忽略浏览器存储不可用或空间不足。 */
+export function saveAccounts(accounts: AccountRecord[]): boolean {
+  try {
+    localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts))
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -134,36 +168,111 @@ function isUsableUsername(username: string): boolean {
   return /^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,24}$/.test(username)
 }
 
-/** 首次运行：写入三个预置管理员；旧版单管理员凭据存在时迁移为兼容别名 */
-export async function ensureAccountsSeeded(): Promise<AccountRecord[]> {
-  const existing = loadAccounts()
-  if (existing.length === 0) {
-    const seeded: AccountRecord[] = []
-    for (const preset of accountPresets) {
-      const salt = makeSalt()
-      seeded.push({
-        id: preset.id,
-        username: preset.username,
-        displayName: preset.displayName,
+/** Shared client-side validation for local and cloud member applications. */
+export function validateMemberRegistration(
+  username: string,
+  displayName: string,
+  password: string,
+  minimumPasswordLength = 4,
+): string | null {
+  if (!isUsableUsername(username.trim())) {
+    return '用户名需为 2-24 位中英文/数字/下划线/连字符'
+  }
+  if (!displayName.trim()) return '请填写你想展示的昵称'
+  if (displayName.trim().length > 48) return '展示昵称不能超过 48 个字符'
+  if (password.length < minimumPasswordLength) return `密码至少 ${minimumPasswordLength} 位`
+  return null
+}
+
+async function createPresetAccount(preset: AccountPreset): Promise<AccountRecord> {
+  const salt = makeSalt()
+  const now = Date.now()
+  return {
+    id: preset.id,
+    username: preset.username,
+    displayName: preset.displayName,
+    role: 'admin',
+    status: 'approved',
+    salt,
+    passwordHash: await hashPassword(preset.defaultPassword, salt),
+    memberId: preset.memberId,
+    topic: preset.topic,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+/** 确保始终只有三条预设管理员记录；历史多出的管理员不再保留全站编辑权限。 */
+export async function reconcilePresetAdmins(records: AccountRecord[]): Promise<AccountRecord[]> {
+  const working = [...records]
+  const admins: AccountRecord[] = []
+
+  for (const preset of accountPresets) {
+    let index = working.findIndex((account) => account.id === preset.id)
+    if (index < 0) {
+      index = working.findIndex((account) => account.username.toLowerCase() === preset.username.toLowerCase())
+    }
+
+    const existing = index >= 0 ? working.splice(index, 1)[0] : null
+    if (existing) {
+      admins.push({
+        ...existing,
         role: 'admin',
         status: 'approved',
-        salt,
-        passwordHash: await hashPassword(preset.defaultPassword, salt),
-        memberId: preset.memberId,
-        topic: preset.topic,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        memberId: existing.memberId || preset.memberId,
+        topic: existing.topic || preset.topic,
       })
+    } else {
+      admins.push(await createPresetAccount(preset))
     }
-    saveAccounts(seeded)
-    return seeded
   }
-  return existing
+
+  const availableNames = new Set(
+    [...admins, ...working.filter((account) => account.role !== 'admin')]
+      .flatMap((account) => [account.username, ...(account.loginAliases ?? []).map((alias) => alias.username)])
+      .map((username) => username.toLowerCase()),
+  )
+  const legacyAliases: AccountLoginAlias[] = []
+  const migratedAdminIds = new Set<string>()
+  for (const account of working) {
+    if (account.role !== 'admin' || availableNames.has(account.username.toLowerCase())) continue
+    legacyAliases.push({ username: account.username, salt: account.salt, passwordHash: account.passwordHash })
+    availableNames.add(account.username.toLowerCase())
+    migratedAdminIds.add(account.id)
+  }
+  const remaining = working.map((account) => {
+    if (account.role !== 'admin') return account
+    if (migratedAdminIds.has(account.id)) return null
+    return {
+      ...account,
+      role: 'member' as const,
+      status: 'pending' as const,
+      memberId: undefined,
+      note: account.note || '旧管理员账号已迁移为成员申请，请管理员重新审核。',
+      updatedAt: Date.now(),
+    }
+  }).filter((account): account is AccountRecord => account !== null)
+
+  if (legacyAliases.length > 0) {
+    admins[0] = { ...admins[0], loginAliases: [...(admins[0].loginAliases ?? []), ...legacyAliases] }
+  }
+  return [...remaining, ...admins]
+}
+
+/** 首次运行或升级：补齐三个预设管理员，并收敛历史遗留权限。 */
+export async function ensureAccountsSeeded(): Promise<AccountRecord[]> {
+  const reconciled = await reconcilePresetAdmins(loadAccounts())
+  saveAccounts(reconciled)
+  return reconciled
 }
 
 export function findAccountByUsername(accounts: AccountRecord[], username: string): AccountRecord | undefined {
   const u = username.trim().toLowerCase()
-  return accounts.find((a) => a.username.toLowerCase() === u)
+  return accounts.find(
+    (a) =>
+      a.username.toLowerCase() === u ||
+      (Array.isArray(a.loginAliases) && a.loginAliases.some((alias) => alias.username.toLowerCase() === u)),
+  )
 }
 
 export function findAccountById(accounts: AccountRecord[], id: string): AccountRecord | undefined {
@@ -186,11 +295,8 @@ export async function registerMemberAccount(
 ): Promise<RegisterResult> {
   const name = username.trim()
   const shown = displayName.trim()
-  if (!isUsableUsername(name)) {
-    return { ok: false, error: '用户名需为 2-24 位中英文/数字/下划线/连字符' }
-  }
-  if (!shown) return { ok: false, error: '请填写你想展示的昵称' }
-  if (password.length < 4) return { ok: false, error: '密码至少 4 位' }
+  const validationError = validateMemberRegistration(name, shown, password)
+  if (validationError) return { ok: false, error: validationError }
   if (findAccountByUsername(accounts, name)) return { ok: false, error: '该用户名已被占用' }
   const salt = makeSalt()
   const account: AccountRecord = {
@@ -215,8 +321,13 @@ export interface AuthResult {
   error?: 'bad' | 'pending' | 'rejected' | 'lock'
 }
 
-export async function verifyAccountPassword(account: AccountRecord, password: string): Promise<boolean> {
-  return (await hashPassword(password, account.salt)) === account.passwordHash
+export async function verifyAccountPassword(account: AccountRecord, password: string, username?: string): Promise<boolean> {
+  const alias = username
+    ? account.loginAliases?.find((item) => item.username.toLowerCase() === username.trim().toLowerCase())
+    : undefined
+  const salt = alias?.salt ?? account.salt
+  const expected = alias?.passwordHash ?? account.passwordHash
+  return expected !== '' && (await hashPassword(password, salt)) === expected
 }
 
 /** 登录：管理员与已审核成员均可登录；未审核成员给出明确提示 */
@@ -230,7 +341,7 @@ export async function authenticateAccount(
   if (!account) return { ok: false, error: 'bad' }
   if (account.status === 'pending') return { ok: false, error: 'pending' }
   if (account.status === 'rejected') return { ok: false, error: 'rejected' }
-  const ok = await verifyAccountPassword(account, password)
+  const ok = await verifyAccountPassword(account, password, username)
   if (!ok) return { ok: false, error: 'bad' }
   try {
     if (remember) {
@@ -284,12 +395,117 @@ export function publicAccountView(account: AccountRecord) {
     topic: account.topic,
     bio: account.bio,
     note: account.note,
+    avatar: account.avatar,
     createdAt: account.createdAt,
     updatedAt: account.updatedAt,
   }
 }
 
+export function filterEditableProfilePatch(
+  role: AccountRole,
+  patch: Partial<Pick<AccountRecord, 'displayName' | 'bio' | 'topic' | 'avatar'>>,
+): Partial<Pick<AccountRecord, 'displayName' | 'bio' | 'topic' | 'avatar'>> {
+  if (role === 'admin') return patch
+  return { displayName: patch.displayName, bio: patch.bio, avatar: patch.avatar }
+}
+
+export function exportMemberAccountMetadata(accounts: AccountRecord[]): string {
+  // 只导出成员账号元数据；预设管理员及管理员登录别名不会离开本机。
+  return JSON.stringify(
+    accounts.filter((account) => account.role === 'member').map((account) => ({
+      ...account,
+      salt: '',
+      passwordHash: '',
+      loginAliases: [],
+    })),
+    null,
+    2,
+  )
+}
+
 export function accountListExport(accounts: AccountRecord[]): string {
-  // 导出不含密码哈希，仅含账号元信息（供跨设备迁移，密码需重新设置）
-  return JSON.stringify(accounts.map((a) => ({ ...a, salt: '', passwordHash: '' })), null, 2)
+  return exportMemberAccountMetadata(accounts)
+}
+
+export interface AccountImportPlan {
+  ok: boolean
+  error?: string
+  accounts?: AccountRecord[]
+  importedCount?: number
+}
+
+/** 安全合并账号协作 JSON：仅允许成员条目，且空凭据不能覆盖本地已有密码。 */
+export function mergeMemberAccountMetadata(
+  current: AccountRecord[],
+  json: string,
+  availableMemberIds: ReadonlySet<string> = new Set(),
+): AccountImportPlan {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return { ok: false, error: 'JSON 解析失败' }
+  }
+  if (!Array.isArray(parsed)) return { ok: false, error: '账号 JSON 必须是数组' }
+
+  const next = [...current]
+  const seenNames = new Set<string>()
+  const presetNames = new Set(accountPresets.map((preset) => preset.username.toLowerCase()))
+  let importedCount = 0
+
+  for (const row of parsed) {
+    if (!row || typeof row !== 'object' || typeof row.id !== 'string' || typeof row.username !== 'string') continue
+    // 兼容旧版全量导出，但绝不允许导入文件创建或覆盖管理员。
+    if (row.role === 'admin') continue
+    const username = row.username.trim()
+    if (!username) continue
+    const normalizedName = username.toLowerCase()
+    if (seenNames.has(normalizedName)) continue
+    seenNames.add(normalizedName)
+
+    const byId = findAccountById(next, row.id)
+    const byName = findAccountByUsername(next, username)
+    if (presetNames.has(normalizedName) || byId?.role === 'admin' || byName?.role === 'admin') {
+      return { ok: false, error: `「${username}」与预设管理员冲突；本机管理员账号未作更改` }
+    }
+    if (byId && byName && byId.id !== byName.id) {
+      return { ok: false, error: `「${username}」与本机另一个成员账号冲突；未导入任何更改` }
+    }
+    const existing = byId ?? byName
+    if (existing && existing.role !== 'member') continue
+
+    const importedMemberId = typeof row.memberId === 'string' ? row.memberId : undefined
+    const profileExists = !!importedMemberId && availableMemberIds.has(importedMemberId)
+    const status: AccountStatus =
+      row.status === 'rejected'
+        ? 'rejected'
+        : row.status === 'approved' && profileExists
+          ? 'approved'
+          : 'pending'
+    const incoming: AccountRecord = {
+      id: existing?.id ?? row.id,
+      username,
+      displayName: typeof row.displayName === 'string' && row.displayName.trim() ? row.displayName.trim() : username,
+      role: 'member',
+      status,
+      salt: existing?.salt || '',
+      passwordHash: existing?.passwordHash || '',
+      memberId: status === 'approved' ? importedMemberId : undefined,
+      bio: typeof row.bio === 'string' ? row.bio : existing?.bio ?? '',
+      note: typeof row.note === 'string' ? row.note : existing?.note ?? '',
+      topic: typeof row.topic === 'string' ? row.topic : existing?.topic,
+      avatar: typeof row.avatar === 'string' ? row.avatar : existing?.avatar,
+      createdAt: typeof row.createdAt === 'number' ? row.createdAt : existing?.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+    }
+    const index = next.findIndex((account) => account.id === incoming.id)
+    if (index >= 0) next[index] = incoming
+    else next.push(incoming)
+    importedCount += 1
+  }
+
+  if (importedCount === 0) {
+    return { ok: false, error: '文件中没有可导入的成员账号；管理员账号已被安全跳过' }
+  }
+  return { ok: true, accounts: next, importedCount }
 }

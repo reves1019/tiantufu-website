@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Member, WorkItem } from '../../config/site'
 import { useContent } from '../../lib/contentStore'
+import { flattenUiTextFields } from '../../lib/uiTextFields'
 import ImageField from './ImageField'
+import WorkDetailsFields from './WorkDetailsFields'
+import { memberDomains } from '../../lib/memberProfile'
 
 /* ---------- 通用表单小组件 ---------- */
 
@@ -94,6 +97,9 @@ const TABS = [
   { id: 'categories', label: '作品分类' },
   { id: 'contest', label: '赛事' },
   { id: 'commission', label: '约稿价格' },
+  { id: 'site', label: '站点信息' },
+  { id: 'intro', label: '开场序章' },
+  { id: 'media', label: '品牌与首页素材' },
   { id: 'ui', label: '页面文案' },
 ] as const
 
@@ -101,10 +107,13 @@ type TabId = (typeof TABS)[number]['id']
 
 /** 内容管理：管理员可增删改成员、作品档案、新闻、文化、年鉴、FAQ、主题、分类与约稿价格 */
 export default function ContentManager() {
-  const { content, admin, updateList, setAt } = useContent()
+  const { content, admin, hydrated, updateList, setAt, cloudMode, cloudSyncState, initializeCloudContent, retryCloudSync, restoreCloudContent } = useContent()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<TabId>('members')
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [initializingCloud, setInitializingCloud] = useState(false)
+  const [retryingCloud, setRetryingCloud] = useState(false)
+  const [cloudMessage, setCloudMessage] = useState('')
 
   useEffect(() => {
     const onOpen = () => setOpen(true)
@@ -122,6 +131,24 @@ export default function ContentManager() {
   }, [open])
 
   if (!admin || !open) return null
+  if (cloudMode && cloudSyncState === 'connecting') {
+    return (
+      <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="status">
+        <div className="w-[min(420px,94vw)] rounded-xl border border-white/15 bg-ink-900 p-6 text-center">
+          <p className="font-mono text-xs tracking-[0.25em] text-brand-400">正在确认云端内容</p>
+          <p className="mt-3 text-sm leading-relaxed text-parchment-300">连接完成前暂不开放编辑，避免本机旧副本覆盖云端版本。</p>
+          <button type="button" onClick={() => setOpen(false)} className="mt-5 rounded border border-white/15 px-4 py-2 text-xs text-parchment-300 hover:border-brand-500/50 hover:text-brand-400">关闭</button>
+        </div>
+      </div>
+    )
+  }
+  if (!hydrated) {
+    return (
+      <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4" role="status">
+        <p className="border border-white/15 bg-ink-900 px-6 py-5 text-sm text-parchment-200">正在读取已保存的网站内容…</p>
+      </div>
+    )
+  }
 
   const toggleExpanded = (index: number) => {
     setExpanded((prev) => {
@@ -152,6 +179,8 @@ export default function ContentManager() {
   const works = content.worksArchive
   const topics = content.topics
   const categories = content.worksCategories
+  const introScenes = content.intro.scenes ?? []
+  const socials = content.site.contact.socials ?? []
 
   const blankMember = (): Member => ({
     id: `m-${Date.now()}`,
@@ -169,6 +198,7 @@ export default function ContentManager() {
     id: `w-${Date.now()}`,
     title: '新作品（占位）',
     author: members[0]?.name ?? '',
+    authorMemberId: members[0]?.id,
     image: members[0]?.work.image ?? '',
     desc: '作品说明占位',
     topic: topics[0]?.id ?? 'zhengshi',
@@ -214,6 +244,75 @@ export default function ContentManager() {
 
         {/* 右侧编辑区 */}
         <div className="min-w-0 flex-1 overflow-y-auto p-5">
+          {cloudMode && (
+            <div className={`mb-5 rounded-lg border px-4 py-3 ${cloudSyncState === 'error' ? 'border-brand-500/40 bg-brand-500/10' : 'border-white/10 bg-ink-950/60'}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className={`font-mono text-[10px] tracking-[0.22em] ${cloudSyncState === 'error' ? 'text-brand-400' : 'text-parchment-300'}`}>
+                    {cloudSyncState === 'ready'
+                      ? 'CLOUD · 云端内容已连接'
+                      : cloudSyncState === 'conflict'
+                        ? 'CLOUD · 版本冲突，草稿未丢弃'
+                        : cloudSyncState === 'uninitialized'
+                        ? 'CLOUD · 等待首次内容迁移'
+                        : cloudSyncState === 'error'
+                          ? 'CLOUD · 同步异常'
+                          : 'CLOUD · 正在连接'}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-parchment-500">
+                    {cloudSyncState === 'ready'
+                      ? '管理员修改会同步到云端；成员仅可维护自己的公开资料。'
+                      : cloudSyncState === 'conflict'
+                        ? '其他设备已更新内容，已暂停覆盖云端。请备份草稿并加载云端，再手动合并需要保留的修改。'
+                        : cloudSyncState === 'uninitialized'
+                        ? '请确认当前浏览器是完整的内容来源，再执行一次性初始化；已有云端内容不会被覆盖。'
+                        : cloudSyncState === 'error'
+                          ? '本机编辑仍会暂存，但尚未确认云端同步。请检查连接与数据库策略。'
+                          : '连接期间不会将本机旧内容自动覆盖云端。'}
+                  </p>
+                </div>
+                {cloudSyncState === 'uninitialized' && (
+                  <button
+                    type="button"
+                    disabled={initializingCloud}
+                    onClick={() => {
+                      if (!window.confirm('仅当这台浏览器保存了最新完整内容时继续。将先把本机图片上传到公开共享素材库，再写入初始内容；云端若已初始化，不会覆盖。继续吗？')) return
+                      setInitializingCloud(true)
+                      setCloudMessage('')
+                      void initializeCloudContent().then((result) => {
+                        setCloudMessage(result.ok ? '初始内容已安全写入云端。' : result.error ?? '初始化失败。')
+                      }).finally(() => setInitializingCloud(false))
+                    }}
+                    className="rounded border border-brand-500/50 bg-brand-500/10 px-3 py-2 font-mono text-[10px] tracking-[0.12em] text-brand-400 hover:bg-brand-500/20 disabled:opacity-50"
+                  >
+                    {initializingCloud ? '正在上传图片与初始化…' : '首次同步本机内容'}
+                  </button>
+                )}
+                {cloudSyncState === 'conflict' && (
+                  <button type="button" disabled={retryingCloud} className="rounded border border-brand-500/50 px-3 py-2 text-xs text-brand-400 disabled:opacity-50"
+                    onClick={() => {
+                      if (!window.confirm('将下载并在本机另存当前草稿，再加载云端最新版本。之后可对照备份手动合并。继续吗？')) return
+                      setRetryingCloud(true)
+                      void restoreCloudContent().then((result) => setCloudMessage(result.ok ? '草稿已另存并下载，现已加载云端版本。' : result.error ?? '加载失败。')).finally(() => setRetryingCloud(false))
+                    }}>{retryingCloud ? '正在备份与加载…' : '备份草稿并加载云端'}</button>
+                )}
+                {cloudSyncState === 'error' && (
+                  <button
+                    type="button"
+                    disabled={retryingCloud}
+                    onClick={() => {
+                      setRetryingCloud(true)
+                      void retryCloudSync().finally(() => setRetryingCloud(false))
+                    }}
+                    className="rounded border border-white/15 px-3 py-2 font-mono text-[10px] tracking-[0.12em] text-parchment-300 hover:border-brand-500/50 hover:text-brand-400 disabled:opacity-50"
+                  >
+                    {retryingCloud ? '正在重试…' : '重试云端同步'}
+                  </button>
+                )}
+              </div>
+              {cloudMessage && <p role="status" className="mt-2 text-xs text-gold-300">{cloudMessage}</p>}
+            </div>
+          )}
           {/* 成员 */}
           {tab === 'members' && (
             <div>
@@ -250,12 +349,13 @@ export default function ContentManager() {
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                           <TextField label="昵称" value={member.name} onChange={(v) => setAt(`members.${i}.name`, v)} />
                           <TextField label="身份 / 擅长领域" value={member.role} onChange={(v) => setAt(`members.${i}.role`, v)} />
-                          <SelectField
-                            label="创作主题"
-                            value={member.topic}
-                            options={topics.map((t) => t.id)}
-                            onChange={(v) => setAt(`members.${i}.topic`, v)}
-                          />
+                          <fieldset className="md:col-span-2"><legend className="text-xs text-parchment-400">创作领域（可多选；每幅作品另外分类）</legend><div className="flex flex-wrap gap-4">{topics.map((topic) => <label key={topic.id} className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={memberDomains(member).includes(topic.id)} onChange={(event) => setAt(`members.${i}.domains`, event.target.checked ? [...memberDomains(member), topic.id] : memberDomains(member).filter((id) => id !== topic.id))} />{topic.name}</label>)}</div></fieldset>
+                          <TextField label="社团身份（由管理员确认）" value={member.societyRole ?? ''} onChange={(v) => setAt(`members.${i}.societyRole`, v)} />
+                          <TextField label="QQ / 社区昵称（可空）" value={member.contactName ?? ''} onChange={(v) => setAt(`members.${i}.contactName`, v)} />
+                          <TextField label="加入年份（可空）" value={member.joinedYear ?? ''} onChange={(v) => setAt(`members.${i}.joinedYear`, v)} />
+                          <TextField label="个人签名（可空）" value={member.signature ?? ''} onChange={(v) => setAt(`members.${i}.signature`, v)} />
+                          <TextField label="合作 / 约稿状态（可空）" value={member.cooperation ?? ''} onChange={(v) => setAt(`members.${i}.cooperation`, v)} />
+                          <TextField label="公开个人链接（http / https；非登录邮箱）" value={member.publicUrl ?? ''} onChange={(v) => setAt(`members.${i}.publicUrl`, v)} />
                           <div className="md:col-span-2">
                             <ImageField label="头像图片（上传/路径）" value={member.avatar} onChange={(v) => setAt(`members.${i}.avatar`, v)} />
                           </div>
@@ -273,15 +373,22 @@ export default function ContentManager() {
                             }
                           />
                           <div className="md:col-span-2">
-                            <ImageField label="代表作图片（上传/路径）" value={member.work.image} onChange={(v) => setAt(`members.${i}.work.image`, v)} />
+                            <ImageField label="代表作图片（上传/路径）" value={member.work.image} onChange={(v) => setAt(`members.${i}.work`, { ...member.work, image: v, fullImage: undefined })} />
+                            <ImageField label="阅读用高清图（可空；仅放大时加载）" value={member.work.fullImage ?? ''} onChange={(v) => setAt(`members.${i}.work.fullImage`, v)} />
                           </div>
                           <div className="md:col-span-2">
                             <TextField label="成员简介" value={member.bio} textarea onChange={(v) => setAt(`members.${i}.bio`, v)} />
+                            <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={member.published ?? !['weilai-zhitu', 'changhe-lingtu', 'xingtu-yuanyu'].includes(member.id)} onChange={(event) => setAt(`members.${i}.published`, event.target.checked)} />公开展示此成员（关闭后仍保留在管理库）</label>
                           </div>
                           <div className="md:col-span-2 grid gap-3 md:grid-cols-2">
                             <TextField label="代表作名称" value={member.work.title} onChange={(v) => setAt(`members.${i}.work.title`, v)} />
                             <TextField label="代表作说明" value={member.work.desc} onChange={(v) => setAt(`members.${i}.work.desc`, v)} />
                           </div>
+                          <SelectField label="代表作主题（独立于作者领域）" value={member.work.topic ?? member.topic} options={topics.map((t) => t.id)} onChange={(v) => setAt(`members.${i}.work.topic`, v)} />
+                          <SelectField label="代表作分类" value={member.work.category ?? categories[0] ?? ''} options={categories} onChange={(v) => setAt(`members.${i}.work.category`, v)} />
+                          <TextField label="代表作阅读札记" value={member.work.story ?? ''} textarea onChange={(v) => setAt(`members.${i}.work.story`, v)} />
+                          <WorkDetailsFields work={member.work} path={`members.${i}.work`} />
+                          <p className="text-xs text-parchment-400 md:col-span-2">同一张图已在“作品档案”中登记时，公开页面以档案说明为准，请在那里维护作品信息。</p>
 
                           {/* 成员更多作品 */}
                           <div className="md:col-span-2 mt-1">
@@ -306,9 +413,14 @@ export default function ContentManager() {
                                   <div className="grid gap-2 md:grid-cols-3">
                                     <TextField label="作品名" value={work.title} onChange={(v) => setAt(`members.${i}.works.${j}.title`, v)} />
                                     <TextField label="说明" value={work.desc} onChange={(v) => setAt(`members.${i}.works.${j}.desc`, v)} />
+                                    <ImageField label="阅读用高清图（可空）" value={work.fullImage ?? ''} onChange={(v) => setAt(`members.${i}.works.${j}.fullImage`, v)} />
                                   </div>
                                   <div className="mt-2">
                                     <ImageField label="作品图片（上传/路径）" value={work.image} onChange={(v) => setAt(`members.${i}.works.${j}.image`, v)} />
+                                    <SelectField label="该作品的创作主题" value={work.topic ?? member.topic} options={topics.map((t) => t.id)} onChange={(v) => setAt(`members.${i}.works.${j}.topic`, v)} />
+                                    <SelectField label="该作品的分类" value={work.category ?? categories[0] ?? ''} options={categories} onChange={(v) => setAt(`members.${i}.works.${j}.category`, v)} />
+                                    <TextField label="阅读札记" value={work.story ?? ''} textarea onChange={(v) => setAt(`members.${i}.works.${j}.story`, v)} />
+                                    <WorkDetailsFields work={work} path={`members.${i}.works.${j}`} />
                                   </div>
                                   <div className="mt-2 flex justify-end">
                                     <button
@@ -368,11 +480,33 @@ export default function ContentManager() {
                       {isOpen && (
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                           <TextField label="作品名" value={work.title} onChange={(v) => setAt(`worksArchive.${i}.title`, v)} />
-                          <TextField label="作者" value={work.author} onChange={(v) => setAt(`worksArchive.${i}.author`, v)} />
+                          <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={work.published ?? !['w-shengming-2', 'w-shengxiong-2', 'w-baicai-2', 'w-weilai-1', 'w-weilai-2', 'w-changhe-1', 'w-changhe-2', 'w-xingtu-1', 'w-xingtu-2'].includes(work.id)} onChange={(event) => setAt(`worksArchive.${i}.published`, event.target.checked)} />公开展示此作品</label>
+                          <TextField label="作者署名" value={work.author} onChange={(author) => updateList('worksArchive', works.map((entry, index) => index === i ? { ...entry, author, authorMemberId: undefined } : entry))} />
+                          <label className="flex flex-col gap-1.5 text-xs text-parchment-400">
+                            所属成员（改名后作品仍跟随本人）
+                            <select
+                              className={inputCls}
+                              value={work.authorMemberId ?? ''}
+                              onChange={(event) => {
+                                const member = members.find((entry) => entry.id === event.target.value)
+                                updateList('worksArchive', works.map((entry, index) => index === i ? {
+                                  ...entry, authorMemberId: member?.id, author: member?.name ?? entry.author,
+                                } : entry))
+                              }}
+                            >
+                              <option value="">独立署名 / 尚未关联成员</option>
+                              {work.authorMemberId && !members.some((member) => member.id === work.authorMemberId) && (
+                                <option value={work.authorMemberId}>原成员已移除（请重新关联）</option>
+                              )}
+                              {members.map((member) => <option key={member.id} value={member.id}>{member.name} · {member.id}</option>)}
+                            </select>
+                          </label>
                           <div className="md:col-span-2">
-                            <ImageField label="作品图片（上传/路径）" value={work.image} onChange={(v) => setAt(`worksArchive.${i}.image`, v)} />
+                            <ImageField label="作品图片（上传/路径）" value={work.image} onChange={(v) => setAt(`worksArchive.${i}`, { ...work, image: v, fullImage: undefined })} />
+                            <ImageField label="阅读用高清图（可空）" value={work.fullImage ?? ''} onChange={(v) => setAt(`worksArchive.${i}.fullImage`, v)} />
                           </div>
                           <TextField label="年份（可空）" value={work.year ?? ''} onChange={(v) => setAt(`worksArchive.${i}.year`, v)} />
+                          <WorkDetailsFields work={work} path={`worksArchive.${i}`} />
                           <SelectField
                             label="创作主题"
                             value={work.topic}
@@ -387,6 +521,7 @@ export default function ContentManager() {
                           />
                           <div className="md:col-span-2">
                             <TextField label="作品说明" value={work.desc} textarea onChange={(v) => setAt(`worksArchive.${i}.desc`, v)} />
+                            <TextField label="地图阅读札记（作者提供背景、读图顺序、图例说明）" value={work.story ?? ''} textarea onChange={(v) => setAt(`worksArchive.${i}.story`, v)} />
                           </div>
                         </div>
                       )}
@@ -796,6 +931,166 @@ export default function ContentManager() {
             </div>
           )}
 
+          {/* 站点信息：品牌基础文案、导航项和联系方式 */}
+          {tab === 'site' && (
+            <div>
+              <p className="font-mono text-xs tracking-[0.35em] text-brand-400">SITE IDENTITY · 站点信息</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-parchment-500">
+                管理品牌名称、首页标语、导航显示文字和对外联系方式。导航链接固定，避免编辑时意外破坏页面路由；所有字段自动保存。
+              </p>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <TextField label="站点名称" value={content.site.name} onChange={(v) => setAt('site.name', v)} />
+                <TextField label="英文名称" value={content.site.nameEn} onChange={(v) => setAt('site.nameEn', v)} />
+                <TextField label="首页标语" value={content.site.slogan} onChange={(v) => setAt('site.slogan', v)} />
+                <TextField label="首页眉题" value={content.site.overline} onChange={(v) => setAt('site.overline', v)} />
+              </div>
+
+              <div className="mt-7">
+                <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">NAVIGATION · 导航</p>
+                <div className="mt-3 space-y-3">
+                  {content.site.nav.map((item, i) => (
+                    <div key={item.href} className="rounded-lg border border-white/10 bg-ink-950/45 p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs text-parchment-200">导航项 {String(i + 1).padStart(2, '0')}</span>
+                        <code className="font-mono text-[10px] text-parchment-500">固定路由：{item.href}</code>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <TextField label="显示名称" value={item.label} onChange={(v) => setAt(`site.nav.${i}.label`, v)} />
+                        <TextField label="辅助说明" value={item.desc} onChange={(v) => setAt(`site.nav.${i}.desc`, v)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-7">
+                <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">CONTACT · 联系方式</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <TextField label="QQ" value={content.site.contact.qq} onChange={(v) => setAt('site.contact.qq', v)} />
+                  <TextField label="QQ 群号" value={content.site.contact.qqGroup} onChange={(v) => setAt('site.contact.qqGroup', v)} />
+                  <TextField label="B 站主页链接" value={content.site.contact.bilibili} onChange={(v) => setAt('site.contact.bilibili', v)} />
+                  <TextField label="联系邮箱" value={content.site.contact.email} onChange={(v) => setAt('site.contact.email', v)} />
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="font-mono text-[10px] tracking-[0.25em] text-parchment-400">社交平台链接</p>
+                  <button
+                    type="button"
+                    onClick={() => addItem('site.contact.socials', socials, { label: '新平台', url: 'https://' })}
+                    className="rounded border border-brand-500/50 px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-brand-400 hover:bg-brand-500/10"
+                  >
+                    + 添加平台
+                  </button>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {socials.map((item, i) => (
+                    <div key={`${item.label}-${i}`} className="grid gap-3 rounded-lg border border-white/10 bg-ink-950/45 p-4 md:grid-cols-[1fr_2fr_auto] md:items-end">
+                      <TextField label="平台名称" value={item.label} onChange={(v) => setAt(`site.contact.socials.${i}.label`, v)} />
+                      <TextField label="平台链接" value={item.url} onChange={(v) => setAt(`site.contact.socials.${i}.url`, v)} />
+                      <button
+                        type="button"
+                        onClick={() => removeItem('site.contact.socials', socials, i, `平台「${item.label}」`)}
+                        className="rounded border border-white/10 px-3 py-2 font-mono text-[10px] text-parchment-400 hover:border-brand-500/50 hover:text-brand-400"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 开场序章：允许管理员直接替换自动播放章节与按钮文案 */}
+          {tab === 'intro' && (
+            <div>
+              <p className="font-mono text-xs tracking-[0.35em] text-brand-400">INTRO SEQUENCE · 开场序章</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-parchment-500">
+                修改开始页、跳过按钮及自动播放故事章节。章节按列表顺序播放；更改会自动保存，重新打开网站后仍保留。
+              </p>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <TextField label="欢迎页标题" value={content.intro.welcomeTitle} onChange={(v) => setAt('intro.welcomeTitle', v)} />
+                <TextField label="欢迎页英文标题" value={content.intro.welcomeTitleEn ?? ''} onChange={(v) => setAt('intro.welcomeTitleEn', v)} />
+                <TextField label="欢迎页标语" value={content.intro.welcomeSlogan} onChange={(v) => setAt('intro.welcomeSlogan', v)} />
+                <TextField label="欢迎页英文标语" value={content.intro.welcomeSloganEn ?? ''} onChange={(v) => setAt('intro.welcomeSloganEn', v)} />
+                <TextField label="开始按钮" value={content.intro.startLabel} onChange={(v) => setAt('intro.startLabel', v)} />
+                <TextField label="开始按钮英文" value={content.intro.startLabelEn ?? ''} onChange={(v) => setAt('intro.startLabelEn', v)} />
+                <TextField label="跳过按钮" value={content.intro.skipLabel} onChange={(v) => setAt('intro.skipLabel', v)} />
+                <TextField label="跳过按钮英文" value={content.intro.skipLabelEn ?? ''} onChange={(v) => setAt('intro.skipLabelEn', v)} />
+                <TextField label="继续按钮" value={content.intro.continueLabel} onChange={(v) => setAt('intro.continueLabel', v)} />
+                <TextField label="序章结束按钮" value={content.intro.enterHomeLabel} onChange={(v) => setAt('intro.enterHomeLabel', v)} />
+                <TextField label="进入首页英文" value={content.intro.enterHomeLabelEn ?? ''} onChange={(v) => setAt('intro.enterHomeLabelEn', v)} />
+                <TextField label="结尾提示按钮" value={content.intro.enterLabel} onChange={(v) => setAt('intro.enterLabel', v)} />
+              </div>
+              <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+                <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">STORY · 故事章节 {introScenes.length}</p>
+                <button
+                  type="button"
+                  onClick={() => addItem('intro.scenes', introScenes, { title: '新章节（占位）', titleEn: 'NEW CHAPTER', text: '章节说明占位，请替换为正式内容。', textEn: 'Chapter description placeholder.' })}
+                  className="rounded border border-brand-500/50 px-3 py-1.5 font-mono text-[10px] tracking-[0.15em] text-brand-400 transition-colors hover:bg-brand-500/10"
+                >
+                  + 添加章节
+                </button>
+              </div>
+              <div className="mt-3 space-y-3">
+                {introScenes.map((scene, i) => (
+                  <div key={`intro-${i}`} className="rounded-lg border border-white/10 bg-ink-950/45 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="font-mono text-[10px] tracking-[0.2em] text-parchment-400">章节 {String(i + 1).padStart(2, '0')}</span>
+                      <RowActions
+                        index={i}
+                        total={introScenes.length}
+                        onUp={() => move('intro.scenes', introScenes, i, -1)}
+                        onDown={() => move('intro.scenes', introScenes, i, 1)}
+                        onDelete={() => removeItem('intro.scenes', introScenes, i, `章节「${scene.title}」`)}
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <TextField label="章节标题" value={scene.title} onChange={(v) => setAt(`intro.scenes.${i}.title`, v)} />
+                      <TextField label="章节英文标题" value={scene.titleEn ?? ''} onChange={(v) => setAt(`intro.scenes.${i}.titleEn`, v)} />
+                      <TextField label="章节文案" value={scene.text} textarea onChange={(v) => setAt(`intro.scenes.${i}.text`, v)} />
+                      <TextField label="章节英文文案" value={scene.textEn ?? ''} textarea onChange={(v) => setAt(`intro.scenes.${i}.textEn`, v)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === 'media' && (
+            <div className="space-y-6">
+              <h3 className="font-display text-xl text-parchment-100">品牌与首页素材</h3>
+              <p className="text-xs leading-relaxed text-parchment-300">导航、社团序章与品牌落款使用这些资源。首页及地图探索的地图来自公开作品库；新首页文字在“页面文案”的“地图影展”中编辑。</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {Object.entries(content.media.brand).map(([key, value]) => (
+                  <ImageField key={key} label={`品牌标识 · ${key}`} value={value} onChange={(v) => setAt(`media.brand.${key}`, v)} />
+                ))}
+              </div>
+              <div className="space-y-4">
+                {content.media.maps.map((value, index) => (
+                  <ImageField key={index} label={`地图背景 ${index + 1}`} value={value} onChange={(v) => setAt(`media.maps.${index}`, v)} />
+                ))}
+              </div>
+              <details className="space-y-4 rounded border border-white/10 p-4">
+              <summary className="cursor-pointer text-sm text-parchment-400">旧版建筑文字帘素材（仅保留备份，不用于新版首页）</summary>
+              <p className="text-xs leading-relaxed text-parchment-300">建筑图片请使用透明底 PNG / WebP。每个主题的标题、说明和垂落字符可独立编辑。</p>
+              <TextField label="文字帘交互提示" value={content.homeAtlas.interactionHint} onChange={(v) => setAt('homeAtlas.interactionHint', v)} />
+              <TextField label="主题入口按钮" value={content.homeAtlas.exploreLabel} onChange={(v) => setAt('homeAtlas.exploreLabel', v)} />
+              <TextField label="上一主题无障碍提示" value={content.homeAtlas.previousLabel} onChange={(v) => setAt('homeAtlas.previousLabel', v)} />
+              <TextField label="下一主题无障碍提示" value={content.homeAtlas.nextLabel} onChange={(v) => setAt('homeAtlas.nextLabel', v)} />
+              {content.homeAtlas.scenes.map((scene, index) => (
+                <div key={scene.id} className="space-y-3 rounded-lg border border-white/10 p-4">
+                  <ImageField label={`首页建筑 ${index + 1}`} value={scene.roof} onChange={(v) => setAt(`homeAtlas.scenes.${index}.roof`, v)} />
+                  <TextField label="主题 ID（对应创作主题）" value={scene.topicId} onChange={(v) => setAt(`homeAtlas.scenes.${index}.topicId`, v)} />
+                  <TextField label="标题上方说明" value={scene.kicker} onChange={(v) => setAt(`homeAtlas.scenes.${index}.kicker`, v)} />
+                  <TextField label="首页叙事标题（支持换行）" textarea value={scene.title} onChange={(v) => setAt(`homeAtlas.scenes.${index}.title`, v)} />
+                  <TextField label="右下角主题说明" textarea value={scene.description} onChange={(v) => setAt(`homeAtlas.scenes.${index}.description`, v)} />
+                  <TextField label="文字帘字符" textarea value={scene.words} onChange={(v) => setAt(`homeAtlas.scenes.${index}.words`, v)} />
+                </div>
+              ))}
+              </details>
+            </div>
+          )}
+
           {/* 页面文案：首页/介绍/主题/数码地球/作品集/联系页面的固定按钮与提示文字 */}
           {tab === 'ui' && (
             <div>
@@ -807,14 +1102,14 @@ export default function ContentManager() {
               <div className="mt-5 space-y-5">
                 {Object.entries(content.ui).map(([group, groupText]) => (
                   <div key={group} className="rounded-lg border border-white/10 bg-ink-950/45 p-4">
-                    <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">{group.toUpperCase()}</p>
+                    <p className="font-mono text-[10px] tracking-[0.3em] text-brand-400">{group === 'exhibition' ? '地图影展 · 新版首页与地图探索' : group.toUpperCase()}</p>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      {Object.entries(groupText as Record<string, string>).map(([key, value]) => (
+                      {flattenUiTextFields(groupText, `ui.${group}`).map(({ path, label, value }) => (
                         <TextField
-                          key={`${group}.${key}`}
-                          label={key}
+                          key={path}
+                          label={label}
                           value={value}
-                          onChange={(v) => setAt(`ui.${group}.${key}`, v)}
+                          onChange={(v) => setAt(path, v)}
                         />
                       ))}
                     </div>

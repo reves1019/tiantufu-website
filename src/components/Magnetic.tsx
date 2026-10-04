@@ -1,4 +1,5 @@
 import { useRef, type MouseEvent, type ReactNode } from 'react'
+import { isMotionReduced } from '../lib/motionPreference'
 
 interface MagneticProps {
   children: ReactNode
@@ -16,7 +17,7 @@ export default function Magnetic({ children, className, strength = 0.18, max = 8
   const handleMove = (event: MouseEvent<HTMLSpanElement>) => {
     const el = innerRef.current
     if (!el) return
-    if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (window.innerWidth < 768 || isMotionReduced()) return
     const rect = el.getBoundingClientRect()
     const dx = event.clientX - (rect.left + rect.width / 2)
     const dy = event.clientY - (rect.top + rect.height / 2)

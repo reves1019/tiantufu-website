@@ -1,233 +1,57 @@
 import { useEffect, useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
-import { site } from '../config/site'
 import { useContent } from '../lib/contentStore'
-import { CONTEST_INDEX, CULTURE_INDEX, NEWS_INDEX } from '../lib/pages'
+import { CONTEST_INDEX, CULTURE_INDEX, JOIN_INDEX, MEMBER_INDEX, NEWS_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { isMemberPublished } from '../lib/publicCatalog'
+import { setActiveMemberId } from '../lib/memberBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { FlowButton } from '../components/ui/flow-button'
+import { LinearModal } from '../components/ui/linear-modal'
+import { isMotionReduced } from '../lib/motionPreference'
 
-/** 社团介绍页：以文本为主（简介 / 宗旨 / 历史 + 核心数据 + 年鉴），新闻与文化为独立子页 */
 export default function AboutView() {
-  const { content } = useContent()
+  const { content, admin } = useContent()
   const about = content.about
-
-  const railRef = useRef<HTMLDivElement>(null)
-  const annalsFillRef = useRef<HTMLDivElement>(null)
-  const annalsThumbRef = useRef<HTMLSpanElement>(null)
-  const rafRef = useRef(0)
-  const [annalsStart, setAnnalsStart] = useState(true)
-  const [annalsEnd, setAnnalsEnd] = useState(true)
-
-  const updateAnnals = () => {
-    rafRef.current = 0
-    const el = railRef.current
-    if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    const p = max > 0 ? Math.min(1, Math.max(0, el.scrollLeft / max)) : 0
-    if (annalsFillRef.current) annalsFillRef.current.style.width = `${p * 100}%`
-    if (annalsThumbRef.current) annalsThumbRef.current.style.opacity = p > 0 && p < 1 ? '1' : '0.4'
-    const start = el.scrollLeft <= 2
-    const end = el.scrollLeft >= max - 2
-    setAnnalsStart((v) => (v === start ? v : start))
-    setAnnalsEnd((v) => (v === end ? v : end))
-  }
-
+  const root = useRef<HTMLElement>(null)
+  const rail = useRef<HTMLDivElement>(null)
+  const fill = useRef<HTMLDivElement>(null)
+  const frame = useRef(0)
+  const [ends, setEnds] = useState({ start: true, end: true })
+  const [authorIndex, setAuthorIndex] = useState(0)
+  const authors = content.members.filter(isMemberPublished)
+  const author = authors[Math.min(authorIndex, authors.length - 1)]
+  useExhibitionMotion(root, admin, about.annals.length, true)
   useEffect(() => {
-    updateAnnals()
-    const onResize = () => updateAnnals()
-    window.addEventListener('resize', onResize)
-    return () => {
-      window.removeEventListener('resize', onResize)
-      cancelAnimationFrame(rafRef.current)
+    const node = rail.current
+    if (!node) return
+    const update = () => {
+      frame.current = 0
+      const max = Math.max(0, node.scrollWidth - node.clientWidth)
+      const p = max ? Math.max(0, Math.min(1, node.scrollLeft / max)) : 0
+      if (fill.current) fill.current.style.transform = `scaleX(${p})`
+      const next = { start: node.scrollLeft <= 2, end: node.scrollLeft >= max - 2 }
+      setEnds((current) => current.start === next.start && current.end === next.end ? current : next)
     }
-  }, [])
-
-  const onAnnalsScroll = () => {
-    if (rafRef.current) return
-    rafRef.current = requestAnimationFrame(updateAnnals)
-  }
-
-  const stepAnnals = (dir: 1 | -1) => {
-    railRef.current?.scrollBy({ left: dir * 320, behavior: 'smooth' })
-  }
-
-  return (
-    <section
-      id="about"
-      data-scroll-root
-      className="relative h-full w-full overflow-y-auto"
-    >
-      <div className="relative z-10 mx-auto w-full max-w-[1700px] px-8 pb-12 pt-24 lg:px-12">
-        <div className="scene-block flex items-baseline gap-4">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">
-            E 120° · 02 · {content.ui.about.kicker} · {site.nameEn}
-          </p>
-          <span className="h-px w-16 bg-white/15" />
-        </div>
-        <EditableText
-          as="h2"
-          value={about.introTitle}
-          path="about.introTitle"
-          className="scene-block mt-3 font-display text-4xl tracking-[0.12em] text-parchment-100 sm:text-5xl lg:text-6xl"
-        />
-
-        {/* 社团简介 */}
-        <EditableText
-          as="p"
-          multiline
-          value={about.introBody}
-          path="about.introBody"
-          className="scene-block mt-5 max-w-3xl text-sm leading-relaxed text-parchment-300"
-        />
-
-        {/* 社团宗旨 */}
-        <div className="scene-block mt-8 max-w-3xl border-l-2 border-brand-500/60 pl-5">
-          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.missionLabel}</p>
-          <EditableText
-            as="p"
-            multiline
-            value={about.mission}
-            path="about.mission"
-            className="mt-2 text-sm leading-relaxed text-parchment-300"
-          />
-        </div>
-
-        {/* 社团历史 */}
-        <div className="scene-block mt-6 max-w-3xl border-l-2 border-white/15 pl-5">
-          <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.historyLabel}</p>
-          <EditableText
-            as="p"
-            multiline
-            value={about.history}
-            path="about.history"
-            className="mt-2 text-sm leading-relaxed text-parchment-300"
-          />
-        </div>
-
-        {/* 核心数据 */}
-        <div className="scene-block mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {about.stats.map((stat, i) => (
-            <div
-              key={stat.label}
-              className="rounded-lg border border-white/10 bg-ink-950/45 p-5 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/50"
-            >
-              <p className="flex items-baseline gap-1.5">
-                <EditableText
-                  as="span"
-                  value={stat.value}
-                  path={`about.stats.${i}.value`}
-                  className="font-display text-4xl text-parchment-100"
-                />
-                <EditableText
-                  as="span"
-                  value={stat.suffix}
-                  path={`about.stats.${i}.suffix`}
-                  className="text-base text-gold-400"
-                />
-              </p>
-              <EditableText
-                as="p"
-                value={stat.label}
-                path={`about.stats.${i}.label`}
-                className="mt-1.5 text-sm tracking-[0.2em] text-parchment-300"
-              />
-              <EditableText
-                as="p"
-                value={stat.note}
-                path={`about.stats.${i}.note`}
-                className="mt-0.5 text-xs text-parchment-500"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* 年鉴（历史大事记，横向滑动 + 自定义进度条） */}
-        <div className="scene-block mt-8 max-w-[1300px]">
-          <div className="flex items-center justify-between gap-4">
-            <p className="font-mono text-xs tracking-[0.35em] text-brand-400">{content.ui.about.annalsLabel}</p>
-            <div className="hidden items-center gap-2 sm:flex">
-              <button
-                type="button"
-                onClick={() => stepAnnals(-1)}
-                disabled={annalsStart}
-                aria-label="向左滑动"
-                className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-all duration-300 ${
-                  annalsStart
-                    ? 'cursor-default border-white/5 text-white/15'
-                    : 'border-white/15 text-parchment-300 hover:border-brand-500/60 hover:text-brand-400 hover:shadow-[0_0_14px_rgba(199,27,27,0.3)]'
-                }`}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => stepAnnals(1)}
-                disabled={annalsEnd}
-                aria-label="向右滑动"
-                className={`flex h-8 w-8 items-center justify-center rounded-md border text-sm transition-all duration-300 ${
-                  annalsEnd
-                    ? 'cursor-default border-white/5 text-white/15'
-                    : 'border-white/15 text-parchment-300 hover:border-brand-500/60 hover:text-brand-400 hover:shadow-[0_0_14px_rgba(199,27,27,0.3)]'
-                }`}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div
-            ref={railRef}
-            onScroll={onAnnalsScroll}
-            className="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto pb-3"
-          >
-            {about.annals.map((item, i) => (
-              <div
-                key={item.title}
-                className="w-72 shrink-0 snap-start rounded-lg border border-white/10 bg-ink-950/45 p-5 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/50"
-              >
-                <p className="font-mono text-[10px] tracking-[0.25em] text-brand-400">
-                  {String(i + 1).padStart(2, '0')} · {item.date}
-                </p>
-                <EditableText as="h4" value={item.title} path={`about.annals.${i}.title`} className="mt-2 text-lg tracking-[0.1em] text-parchment-100" />
-                <EditableText as="p" multiline value={item.desc} path={`about.annals.${i}.desc`} className="mt-2 text-xs leading-relaxed text-parchment-500" />
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <div className="relative h-[2px] flex-1 overflow-hidden rounded-full bg-white/10">
-              <div ref={annalsFillRef} className="annals-fill h-full rounded-full" style={{ width: '0%' }} />
-            </div>
-            <span ref={annalsThumbRef} className="annals-thumb h-1.5 w-1.5 shrink-0 rounded-full" style={{ opacity: 0.4 }} />
-          </div>
-        </div>
-
-        {/* 子页入口：新闻 / 文化 / 大赛 */}
-        <div className="scene-block mt-10 flex flex-wrap gap-4">
-          <button
-            type="button"
-            onClick={() => requestScene(NEWS_INDEX)}
-            className="rounded-md bg-brand-500 px-7 py-3 text-sm tracking-[0.2em] text-white shadow-[0_0_24px_rgba(199,27,27,0.35)] transition-all duration-300 hover:bg-brand-600"
-          >
-            {content.ui.about.newsCta}
-          </button>
-          <button
-            type="button"
-            onClick={() => requestScene(CULTURE_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            {content.ui.about.cultureCta}
-          </button>
-          <button
-            type="button"
-            onClick={() => requestScene(CONTEST_INDEX)}
-            className="rounded-md border border-brand-500/40 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.2em] text-brand-400 backdrop-blur-sm transition-all duration-300 hover:border-brand-500 hover:bg-brand-500/10"
-          >
-            {content.ui.about.contestCta}
-          </button>
-        </div>
-      </div>
-    </section>
-  )
+    const schedule = () => { if (!frame.current) frame.current = requestAnimationFrame(update) }
+    const observer = new ResizeObserver(schedule)
+    observer.observe(node)
+    ;[...node.children].forEach((child) => observer.observe(child))
+    node.addEventListener('scroll', schedule, { passive: true })
+    update()
+    return () => { observer.disconnect(); node.removeEventListener('scroll', schedule); cancelAnimationFrame(frame.current) }
+  }, [about.annals.length])
+  const step = (direction: number) => rail.current?.scrollBy({ left: direction * 340, behavior: isMotionReduced() ? 'auto' : 'smooth' })
+  return <section ref={root} id="about" data-scroll-root className="atlas-night editorial-page relative h-full w-full overflow-y-auto overflow-x-hidden"><div className="editorial-container">
+    <header className="society-header"><EditableText as="h1" value={about.introTitle} path="about.introTitle" className="editorial-title w-full max-w-6xl" /><EditableText as="p" multiline value={about.introBody} path="about.introBody" className="reading-copy" /></header>
+    <div className="society-reading"><div className="society-reading-title"><EditableText as="h2" value={content.ui.exhibition.manifesto} path="ui.exhibition.manifesto" />{author && <div className="society-author"><div className="exhibit-portraits">{authors.map((entry, i) => <button key={entry.id} type="button" aria-label={entry.name} aria-pressed={i === authorIndex} onClick={() => setAuthorIndex(i)}><img src={entry.avatar} alt="" loading="lazy" /></button>)}</div><p>{author.name}</p><button type="button" className="collection-text-link" onClick={() => { setActiveMemberId(author.id); requestScene(MEMBER_INDEX) }}>{content.ui.exhibition.authorPage} ↗</button></div>}</div><div className="society-chapters">
+      <article data-exhibit-reveal><div className="society-chapter-head"><EditableText as="h2" value={content.ui.about.missionLabel} path="ui.about.missionLabel" /><LinearModal trigger={<span>打开全文 ↗</span>} triggerClassName="society-chapter-trigger" title={content.ui.about.missionLabel} kicker="TIANTUFU · SOCIETY NOTE" description={<p>{about.mission}</p>} /></div><EditableText as="p" multiline value={about.mission} path="about.mission" className="reading-copy" /></article>
+      <article data-exhibit-reveal><div className="society-chapter-head"><EditableText as="h2" value={content.ui.about.historyLabel} path="ui.about.historyLabel" /><LinearModal trigger={<span>打开全文 ↗</span>} triggerClassName="society-chapter-trigger" title={content.ui.about.historyLabel} kicker="TIANTUFU · ARCHIVE NOTE" description={<p>{about.history}</p>} /></div><EditableText as="p" multiline value={about.history} path="about.history" className="reading-copy" /></article>
+    </div></div>
+    <div className="society-statistics">{about.stats.map((stat, i) => <div key={i}><p><EditableText as="span" value={stat.value} path={`about.stats.${i}.value`} /><EditableText as="span" value={stat.suffix} path={`about.stats.${i}.suffix`} /></p><EditableText as="h3" value={stat.label} path={`about.stats.${i}.label`} /><EditableText as="p" value={stat.note} path={`about.stats.${i}.note`} className="society-stat-note" /></div>)}</div>
+    <section className="society-annals"><div className="exhibit-heading"><EditableText as="h2" value={content.ui.about.annalsLabel} path="ui.about.annalsLabel" /><div className="explore-arrows"><button type="button" disabled={ends.start} aria-label="向左滑动" onClick={() => step(-1)}><span className="explore-arrow-label">PREV</span><span aria-hidden="true">←</span></button><button type="button" disabled={ends.end} aria-label="向右滑动" onClick={() => step(1)}><span className="explore-arrow-label">NEXT</span><span aria-hidden="true">→</span></button></div></div><div ref={rail} className="society-annals-rail no-scrollbar" tabIndex={0} aria-label={content.ui.about.annalsLabel} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); step(event.key === 'ArrowLeft' ? -1 : 1) } }}>{about.annals.map((event, i) => <article key={i}><EditableText as="p" value={event.date} path={`about.annals.${i}.date`} className="society-date" /><EditableText as="h3" value={event.title} path={`about.annals.${i}.title`} /><EditableText as="p" multiline value={event.desc} path={`about.annals.${i}.desc`} className="reading-copy" /></article>)}</div><div className="society-annals-track" aria-hidden="true"><div ref={fill} /></div></section>
+    {about.introBody.includes('占位') && <p className="editorial-pending">{content.ui.exhibition.aboutNotice}</p>}
+    <nav className="society-pages">{[{label:content.ui.about.newsCta,index:NEWS_INDEX},{label:content.ui.about.cultureCta,index:CULTURE_INDEX},{label:content.ui.about.contestCta,index:CONTEST_INDEX}].map((entry) => <button type="button" key={entry.index} onClick={() => requestScene(entry.index)}>{entry.label}<span aria-hidden="true">↗</span></button>)}</nav>
+    <footer className="editorial-end"><EditableText as="p" value={content.site.slogan} path="site.slogan" /><FlowButton variant="solid" text={content.ui.home.secondaryCta} onClick={() => requestScene(JOIN_INDEX)} /></footer>
+  </div></section>
 }

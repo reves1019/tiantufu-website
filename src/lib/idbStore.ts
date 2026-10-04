@@ -45,6 +45,19 @@ export async function idbSet(key: string, value: string): Promise<void> {
   })
 }
 
+/** 在同一 IndexedDB 事务里写入多个 KV，适合账号审批等必须一起落盘的数据。 */
+export async function idbSetMany(entries: Array<[string, string]>): Promise<void> {
+  const db = await openDb()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite')
+    const store = tx.objectStore(STORE)
+    for (const [key, value] of entries) store.put(value, key)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  })
+}
+
 export async function idbDelete(key: string): Promise<void> {
   const db = await openDb()
   return new Promise((resolve, reject) => {

@@ -1,3 +1,5 @@
+import { useContent } from '../lib/contentStore'
+
 interface KeywordSpotlightProps {
   keyword: string
   index: number
@@ -9,6 +11,8 @@ interface KeywordSpotlightProps {
  * 对应的占位内容（色块 + “占位图”），后续替换为真实图片/文字。
  */
 export default function KeywordSpotlight({ keyword, index, visible }: KeywordSpotlightProps) {
+  const { content } = useContent()
+  const ui = content.ui.keywordSpotlight
   return (
     <div
       className={`pointer-events-none absolute -top-9 left-1/2 z-20 w-64 -translate-x-1/2 transition-opacity duration-300 ${
@@ -27,7 +31,7 @@ export default function KeywordSpotlight({ keyword, index, visible }: KeywordSpo
             }}
           />
           <span className="absolute inset-0 flex items-center justify-center font-mono text-xs tracking-[0.35em] text-parchment-300/85">
-            占位图
+            {ui.imageLabel}
           </span>
         </div>
         {/* 说明文字 */}
@@ -36,7 +40,7 @@ export default function KeywordSpotlight({ keyword, index, visible }: KeywordSpo
             #{String(index + 1).padStart(2, '0')} · {keyword}
           </p>
           <p className="mt-1.5 break-words text-xs leading-relaxed text-parchment-500">
-            此处为占位内容，后续替换为与该关键词相关的图片或文字。
+            {ui.body}
           </p>
         </div>
       </div>

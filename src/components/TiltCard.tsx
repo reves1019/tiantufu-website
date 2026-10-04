@@ -1,4 +1,5 @@
 import { useRef, type MouseEvent, type ReactNode } from 'react'
+import { isMotionReduced } from '../lib/motionPreference'
 
 interface TiltCardProps {
   children: ReactNode
@@ -14,7 +15,7 @@ export default function TiltCard({ children, className, maxTilt = 6 }: TiltCardP
   const handleMove = (event: MouseEvent<HTMLDivElement>) => {
     const el = ref.current
     if (!el) return
-    if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (window.innerWidth < 768 || isMotionReduced()) return
     const rect = el.getBoundingClientRect()
     const px = (event.clientX - rect.left) / rect.width - 0.5
     const py = (event.clientY - rect.top) / rect.height - 0.5

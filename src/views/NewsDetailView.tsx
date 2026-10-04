@@ -1,86 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
-import { getActiveNewsIndex } from '../lib/newsBus'
+import { getActiveNewsIndex, setActiveNewsIndex } from '../lib/newsBus'
 import { NEWS_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { useExhibitionMotion } from '../lib/useExhibitionMotion'
+import { CreativeButton } from '../components/ui/creative-button'
 
-/** 新闻详情隐藏页：展示单条新闻标题、日期、分类与正文，返回新闻列表 */
 export default function NewsDetailView() {
-  const { content } = useContent()
-  const news = content.about.news
+  const { content, admin } = useContent()
+  const root = useRef<HTMLElement>(null)
   const [activeIndex, setActiveIndex] = useState<number | null>(() => getActiveNewsIndex())
-
   useEffect(() => {
-    const onNews = (event: Event) => {
-      setActiveIndex((event as CustomEvent).detail.index as number)
-    }
+    const onNews = (event: Event) => { setActiveIndex((event as CustomEvent).detail.index); if (root.current) root.current.scrollTop = 0 }
     window.addEventListener('ttf-news', onNews)
     return () => window.removeEventListener('ttf-news', onNews)
   }, [])
-
-  const index = Math.max(0, activeIndex ?? 0)
-  const item = news[index]
-
-  return (
-    <section id="news-detail" data-scroll-root className="relative h-full w-full overflow-y-auto">
-      <div className="relative z-10 mx-auto w-full max-w-[1100px] px-8 pb-14 pt-28 lg:px-12">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 17 · NEWS · 新闻详情</p>
-            {item ? (
-              <>
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <EditableText
-                    as="span"
-                    value={item.tag ?? '公告'}
-                    path={`about.news.${index}.tag`}
-                    className="rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 font-mono text-[10px] tracking-[0.2em] text-brand-400"
-                  />
-                  <EditableText
-                    as="span"
-                    value={item.date}
-                    path={`about.news.${index}.date`}
-                    className="font-mono text-[10px] tracking-[0.3em] text-parchment-500"
-                  />
-                </div>
-                <EditableText
-                  as="h1"
-                  value={item.title}
-                  path={`about.news.${index}.title`}
-                  className="mt-4 w-full font-display text-4xl leading-tight tracking-[0.12em] text-parchment-100 lg:text-6xl"
-                />
-              </>
-            ) : (
-              <h1 className="mt-4 font-display text-4xl tracking-[0.12em] text-parchment-100 lg:text-6xl">
-                新闻详情（占位）
-              </h1>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => requestScene(NEWS_INDEX)}
-            className="rounded-md border border-white/15 bg-ink-950/55 px-6 py-2.5 text-sm tracking-[0.2em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            ← 返回新闻
-          </button>
-        </div>
-
-        <div className="scene-block mt-10">
-          <div className="h-px w-full bg-gradient-to-r from-brand-500/60 via-white/10 to-transparent" />
-          {item ? (
-            <EditableText
-              as="p"
-              multiline
-              value={item.body ?? item.desc}
-              path={`about.news.${index}.body`}
-              className="mt-8 whitespace-pre-line text-base leading-loose text-parchment-300"
-            />
-          ) : (
-            <p className="mt-8 text-base leading-loose text-parchment-300">新闻正文占位：请从新闻列表选择一条新闻查看详情。</p>
-          )}
-        </div>
-      </div>
-    </section>
-  )
+  const ui = content.ui.newsDetail
+  const item = activeIndex === null ? undefined : content.about.news[activeIndex]
+  useExhibitionMotion(root, admin, activeIndex ?? -1)
+  return <section ref={root} id="news-detail" data-scroll-root className="atlas-night editorial-page h-full overflow-y-auto overflow-x-hidden"><div className="editorial-container article-container">
+    <CreativeButton direction="top" text={ui.backNews} onClick={() => requestScene(NEWS_INDEX)} />
+    <header className="article-header">{item && <div className="article-meta"><EditableText value={item.tag ?? '公告'} path={`about.news.${activeIndex}.tag`} /><EditableText value={item.date} path={`about.news.${activeIndex}.date`} /></div>}<EditableText as="h1" value={item?.title ?? ui.fallbackTitle} path={item ? `about.news.${activeIndex}.title` : 'ui.newsDetail.fallbackTitle'} className="editorial-title w-full max-w-6xl" /></header>
+    <article className="article-body" data-exhibit-reveal><EditableText as="p" multiline value={item ? item.body ?? item.desc : ui.emptyBody} path={item ? `about.news.${activeIndex}.body` : 'ui.newsDetail.emptyBody'} className="reading-copy" /></article>
+    {item && <nav className="article-neighbours" aria-label={ui.relatedLabel}>{([-1, 1] as const).map((direction) => { const index = activeIndex! + direction; const next = content.about.news[index]; return next && <button key={direction} onClick={() => setActiveNewsIndex(index)}><span>{direction < 0 ? ui.previous : ui.next}</span><strong>{next.title}</strong></button> })}</nav>}
+    <footer className="journal-footer"><CreativeButton direction="top" text={ui.backNews} onClick={() => requestScene(NEWS_INDEX)} /></footer>
+  </div></section>
 }

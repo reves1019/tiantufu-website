@@ -8,7 +8,7 @@ interface CredentialsModalProps {
 
 /** 修改当前账号密码：验证旧密码后设置新密码 */
 export default function CredentialsModal({ open, onClose }: CredentialsModalProps) {
-  const { changeMyPassword, account } = useContent()
+  const { changeMyPassword, account, cloudMode } = useContent()
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -76,11 +76,13 @@ export default function CredentialsModal({ open, onClose }: CredentialsModalProp
             />
           </label>
           <label className="block">
-            <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">新密码（至少 4 位）</span>
+            <span className="font-mono text-[9px] tracking-[0.25em] text-parchment-500">新密码（至少 {cloudMode ? 8 : 4} 位）</span>
             <input
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
+              minLength={cloudMode ? 8 : 4}
+              required
               className={inputCls}
               placeholder="新的密码"
             />

@@ -4,12 +4,17 @@ import Lightbox from '../components/Lightbox'
 import { useContent } from '../lib/contentStore'
 import { EARTH_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
+import { isMemberPublished } from '../lib/publicCatalog'
+import { CreativeButton } from '../components/ui/creative-button'
 
 /** 数码地球随机作品页：随机展示一位作者的某张作品，返回数码地球 */
 export default function WorkView() {
   const { content } = useContent()
   const members = content.members
-  const [index] = useState(() => (members.length > 0 ? Math.floor(Math.random() * members.length) : -1))
+  const [index] = useState(() => {
+    const published = members.map((member, index) => ({ member, index })).filter(({ member }) => isMemberPublished(member))
+    return published.length ? published[Math.floor(Math.random() * published.length)].index : -1
+  })
   const [zoom, setZoom] = useState(false)
   const member = index >= 0 ? members[index] : undefined
 
@@ -20,7 +25,7 @@ export default function WorkView() {
       <div className="relative z-10 mx-auto grid w-full max-w-[1700px] items-center gap-12 px-8 pb-12 pt-24 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
         {/* 作者信息 */}
         <div className="scene-block">
-          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">E 120° · 11 · RANDOM DISCOVERY · 随机发现</p>
+          <p className="font-mono text-xs tracking-[0.5em] text-brand-400">{content.ui.work.kicker}</p>
           <div className="relative mt-8 h-44 w-44">
             <div className="absolute inset-0 rounded-full bg-brand-500/25 blur-2xl" />
             <img
@@ -48,22 +53,21 @@ export default function WorkView() {
             path={`members.${index}.bio`}
             className="mt-6 max-w-md text-sm leading-relaxed text-parchment-300"
           />
-          <button
-            type="button"
+          <CreativeButton
+            className="mt-10"
+            direction="top"
+            text={content.ui.work.backEarth}
             onClick={() => requestScene(EARTH_INDEX)}
-            className="mt-10 inline-flex items-center gap-3 rounded-md border border-white/15 bg-ink-950/55 px-7 py-3 text-sm tracking-[0.22em] text-parchment-100 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/60 hover:text-brand-400"
-          >
-            ← 返回数码地球
-          </button>
+          />
         </div>
 
         {/* 随机作品 */}
         <div className="scene-block">
-          <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">WORK · 随机作品</p>
+          <p className="font-mono text-xs tracking-[0.5em] text-parchment-500">{content.ui.work.sectionKicker}</p>
           <button
             type="button"
             onClick={() => setZoom(true)}
-            aria-label={`放大查看《${member.work.title}》`}
+            aria-label={`${content.ui.work.zoomAriaPrefix}${member.work.title}${content.ui.work.zoomAriaSuffix}`}
             className="group relative mt-6 block w-full cursor-zoom-in overflow-hidden rounded-lg border border-white/12 bg-ink-950/50 text-left shadow-[0_0_44px_rgba(199,27,27,0.18)] transition-colors duration-300 hover:border-brand-500/50"
           >
             <div aria-hidden="true" className="pointer-events-none absolute inset-2 z-10 border border-brand-500/25" />

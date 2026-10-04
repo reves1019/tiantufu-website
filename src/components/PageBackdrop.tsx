@@ -1,22 +1,59 @@
-import MapSlideshow from './MapSlideshow'
-import NoiseField from './NoiseField'
+import { useEffect, useRef } from 'react'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
 
-/** 全局复古地图背景：历史地图移动效果 + 复古未来质感（深空紫底调、霓虹微光、噪点） */
+/** A quiet React-Bits-style dot field: pointer position is painted through CSS vars. */
 export default function PageBackdrop() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <MapSlideshow />
-      {/* 复古未来：深空紫底调 */}
-      <div className="absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_50%_30%,rgba(58,50,69,0.4)_0%,rgba(20,16,26,0.55)_55%,rgba(7,9,13,0.88)_100%)]" />
-      {/* 霓虹红/粉微光 */}
-      <div className="absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_18%_88%,rgba(255,143,163,0.09)_0%,transparent_46%)]" />
-      {/* 可读性遮罩 */}
-      <div className="absolute inset-0 z-[2] bg-gradient-to-b from-ink-950/90 via-ink-950/65 to-ink-950/95" />
-      <div className="absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_center,rgba(7,9,13,0.35)_0%,rgba(7,9,13,0.8)_100%)]" />
-      {/* 噪点颗粒（复古未来胶片感） */}
-      <div className="grain-overlay absolute inset-0 z-[3]" />
-      {/* 动态噪点/尘埃背景（视频中的 WebGL Noise 轻量版） */}
-      <NoiseField />
-    </div>
-  )
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+    const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let reduced = isMotionReduced()
+    let targetX = 0.52
+    let targetY = 0.42
+    let currentX = targetX
+    let currentY = targetY
+    let frame = 0
+    let disposed = false
+
+    const write = () => {
+      frame = 0
+      currentX += (targetX - currentX) * (reduced ? 1 : 0.08)
+      currentY += (targetY - currentY) * (reduced ? 1 : 0.08)
+      node.style.setProperty('--ambient-x', `${(currentX * 100).toFixed(2)}%`)
+      node.style.setProperty('--ambient-y', `${(currentY * 100).toFixed(2)}%`)
+      node.style.setProperty('--ambient-shift-x', `${((currentX - .5) * 22).toFixed(2)}px`)
+      node.style.setProperty('--ambient-shift-y', `${((currentY - .5) * 16).toFixed(2)}px`)
+      if (!disposed && !reduced && !document.hidden) frame = requestAnimationFrame(write)
+    }
+    const schedule = () => { if (!frame && !disposed && !document.hidden) frame = requestAnimationFrame(write) }
+    const onPointer = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      targetX = Math.min(1, Math.max(0, event.clientX / Math.max(1, window.innerWidth)))
+      targetY = Math.min(1, Math.max(0, event.clientY / Math.max(1, window.innerHeight)))
+      schedule()
+    }
+    const onVisibility = () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0 } else schedule() }
+    const onPreference = () => { reduced = isMotionReduced(); cancelAnimationFrame(frame); frame = 0; write() }
+    window.addEventListener('pointermove', onPointer, { passive: true })
+    document.addEventListener('visibilitychange', onVisibility)
+    reducedQuery.addEventListener('change', onPreference)
+    window.addEventListener(MOTION_PREFERENCE_EVENT, onPreference)
+    write()
+    return () => {
+      disposed = true
+      cancelAnimationFrame(frame)
+      window.removeEventListener('pointermove', onPointer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      reducedQuery.removeEventListener('change', onPreference)
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, onPreference)
+    }
+  }, [])
+
+  return <div ref={ref} aria-hidden="true" className="atlas-backdrop pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <span className="atlas-backdrop-grid" />
+    <span className="atlas-backdrop-glow" />
+    <span className="atlas-backdrop-ring" />
+  </div>
 }

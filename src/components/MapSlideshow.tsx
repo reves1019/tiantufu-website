@@ -1,24 +1,22 @@
 import { useEffect, useState } from 'react'
 import { heroConfig } from '../config/site'
+import { useContent } from '../lib/contentStore'
 
 export default function MapSlideshow() {
+  const { content } = useContent()
+  const maps = content.media.maps
   const [index, setIndex] = useState(0)
   const [shown, setShown] = useState(false)
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setShown(true), 80)
-    return () => window.clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    if (!heroConfig.maps.enabled || heroConfig.maps.srcs.length === 0) return
+    if (!heroConfig.maps.enabled || maps.length === 0) return
     const timer = window.setInterval(() => {
-      setIndex((i) => (i + 1) % heroConfig.maps.srcs.length)
+      setIndex((i) => (i + 1) % maps.length)
     }, heroConfig.maps.intervalMs)
     return () => window.clearInterval(timer)
-  }, [])
+  }, [maps.length])
 
-  if (!heroConfig.maps.enabled || heroConfig.maps.srcs.length === 0) return null
+  if (!heroConfig.maps.enabled || maps.length === 0) return null
 
   const panDuration = heroConfig.maps.intervalMs + heroConfig.maps.fadeMs
 
@@ -30,19 +28,29 @@ export default function MapSlideshow() {
       }`}
     >
       <div className="h-full w-full [perspective:1400px]">
-        {heroConfig.maps.srcs.map((src, i) => {
+        {maps.map((src, i) => {
           const current = i === index
+          const next = i === (index + 1) % maps.length
           return (
             <img
               key={src}
               src={src}
               alt=""
+              loading={current || next ? 'eager' : 'lazy'}
+              decoding="async"
               className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[2000ms] ${
                 current ? 'opacity-100' : 'opacity-0'
-              } ${i % 2 === 0 ? 'map-pan-left' : 'map-pan-right'}`}
+              } ${current ? (i % 2 === 0 ? 'map-pan-left' : 'map-pan-right') : ''}`}
               style={{
                 animationDuration: `${panDuration}ms`,
                 transitionDuration: `${heroConfig.maps.fadeMs}ms`,
+                filter: 'sepia(0.24) saturate(0.72) brightness(0.68) contrast(0.9)',
+              }}
+              onLoad={() => {
+                if (i === 0) setShown(true)
+              }}
+              onError={() => {
+                if (i === 0) setShown(true)
               }}
             />
           )
