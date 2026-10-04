@@ -192,7 +192,7 @@ export default function Navbar() {
             aria-label={menuOpen ? content.ui.nav.closeMenu : content.ui.nav.openMenu}
             aria-expanded={menuOpen}
             aria-controls="atlas-mobile-menu"
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-md border border-white/15 transition-colors hover:border-brand-500/60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 xl:hidden"
+            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-md border border-white/15 transition-[border-color,transform] hover:border-brand-500/60 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 xl:hidden"
           >
             <span className={`h-px w-5 bg-parchment-100 transition-transform duration-300 ${menuOpen ? 'translate-y-[3.5px] rotate-45' : ''}`} />
             <span className={`h-px w-5 bg-parchment-100 transition-opacity duration-300 ${menuOpen ? 'opacity-0' : ''}`} />
@@ -213,7 +213,7 @@ export default function Navbar() {
                   type="button"
                   onClick={() => requestScene(i)}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`rounded-md px-4 py-3 text-left text-sm tracking-[0.2em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
+                  className={`rounded-md px-4 py-3 text-left text-sm tracking-[0.2em] transition-[background-color,color,transform] motion-safe:active:scale-[.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 ${
                     isActive ? 'bg-brand-500/10 text-brand-400' : 'text-parchment-300 hover:bg-white/5'
                   }`}
                 >

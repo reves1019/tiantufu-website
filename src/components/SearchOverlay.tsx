@@ -225,7 +225,7 @@ export default function SearchOverlay() {
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-[720px] overflow-hidden rounded-2xl border border-white/10 bg-ink-900/95 shadow-[0_0_80px_rgba(199,27,27,0.22)] backdrop-blur-xl"
+        className="max-h-[90dvh] w-full max-w-[720px] overflow-hidden rounded-2xl border border-white/10 bg-ink-900/95 shadow-[0_0_80px_rgba(199,27,27,0.22)] backdrop-blur-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
@@ -251,7 +251,7 @@ export default function SearchOverlay() {
             type="button"
             onClick={close}
             aria-label="关闭搜索"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 text-lg text-parchment-400 transition-colors hover:border-brand-500/50 hover:text-brand-400"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 text-lg text-parchment-400 transition-[border-color,color,transform] hover:border-brand-500/50 hover:text-brand-400 motion-safe:active:scale-95"
           >
             ×
           </button>
@@ -286,9 +286,10 @@ export default function SearchOverlay() {
                       role="option"
                       aria-selected={active}
                       data-search-index={i}
+                      onPointerDown={() => setActiveIndex(i)}
                       onMouseEnter={() => setActiveIndex(i)}
                       onClick={() => openResult(entry)}
-                      className={`flex w-full flex-col gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors duration-150 ${
+                      className={`flex w-full flex-col gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-[background-color,border-color,transform] duration-150 motion-safe:active:scale-[.995] focus-visible:border-brand-500/60 ${
                         active ? 'border-brand-500/40 bg-brand-500/10' : 'border-transparent hover:bg-white/5'
                       }`}
                     >
@@ -303,7 +304,7 @@ export default function SearchOverlay() {
                 )
               })
             ) : (
-              <p className="px-4 py-10 text-center font-mono text-xs tracking-[0.3em] text-parchment-500">
+              <p role="status" aria-live="polite" className="px-4 py-10 text-center font-mono text-xs tracking-[0.3em] text-parchment-500">
                 <EditableText as="span" value={ui.empty} path="ui.search.empty" />
               </p>
             )
@@ -321,7 +322,7 @@ export default function SearchOverlay() {
                       close()
                       requestScene(link.index)
                     }}
-                    className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 font-mono text-[10px] tracking-[0.2em] text-parchment-300 transition-colors hover:border-brand-500/50 hover:text-brand-400"
+                    className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 font-mono text-[10px] tracking-[0.2em] text-parchment-300 transition-[border-color,color,transform] hover:border-brand-500/50 hover:text-brand-400 motion-safe:active:scale-[.98]"
                   >
                     <EditableText as="span" value={link.label} path={link.path} />
                   </button>
