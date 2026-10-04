@@ -39,7 +39,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
               event.stopPropagation()
               onZoom()
             }}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 cursor-zoom-in items-center justify-center rounded-full border border-white/15 bg-ink-950/75 text-parchment-200 opacity-0 backdrop-blur-md transition-[border-color,color,opacity,transform] duration-300 group-hover:opacity-100 hover:border-brand-500/70 hover:text-brand-400"
+            className="absolute right-3 top-3 z-20 flex h-9 w-9 cursor-zoom-in items-center justify-center rounded-full border border-white/15 bg-ink-950/75 text-parchment-200 opacity-0 backdrop-blur-md transition-[border-color,color,opacity,transform] duration-300 group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand-500/70 hover:text-brand-400"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
@@ -51,7 +51,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
           src={work.image}
           alt={work.title}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 group-focus-within:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-transparent to-transparent" />
         <div className="absolute bottom-3 left-4 right-4 flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
           as="h3"
           value={work.title}
           path={`worksArchive.${workIndex}.title`}
-          className="truncate text-lg tracking-[0.08em] text-parchment-100 transition-colors group-hover:text-brand-400"
+          className="truncate text-lg tracking-[0.08em] text-parchment-100 transition-colors group-hover:text-brand-400 group-focus-within:text-brand-400"
         />
         <div className="mt-1 flex items-center gap-2">
           <EditableText
@@ -80,7 +80,7 @@ export default function WorkArchiveCard({ work, workIndex, topicName, canOpen, o
             path={`worksArchive.${workIndex}.author`}
             className="font-mono text-[10px] tracking-[0.18em] text-brand-400"
           />
-          <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-parchment-500 opacity-0 transition-[transform,opacity] duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+          <span className="ml-auto font-mono text-[10px] tracking-[0.15em] text-parchment-500 opacity-0 transition-[transform,opacity] duration-300 group-hover:translate-x-1 group-hover:opacity-100 group-focus-within:translate-x-1 group-focus-within:opacity-100">
             {canOpen ? '进入作者页 →' : '作者未收录'}
           </span>
         </div>
