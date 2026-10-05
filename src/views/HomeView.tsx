@@ -18,11 +18,16 @@ import ScrollBaseAnimation from '../components/ui/scroll-text-marquee'
 import { ReviewMarquee, type ReviewMarqueeItem } from '../components/ui/review-marquee'
 import { MapBadgeWindow } from '../components/ui/map-badge-window'
 import { brandAssets, heroConfig } from '../config/site'
-import ImageTrail from '../components/ImageTrail'
 import { clearSpotlight, updateSpotlight } from '../components/Spotlight'
 import ScrollAnimation from '../components/ui/scroll-animation'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
+
+const topicActionLabels: Record<string, string> = {
+  zhengshi: 'HISTORICAL MAPS',
+  'ban-jiakong': 'ALTERNATE HISTORY',
+  'quan-jiakong': 'IMAGINED WORLDS',
+}
 
 export default function HomeView() {
   const { content, admin } = useContent()
@@ -93,8 +98,6 @@ export default function HomeView() {
         footerLabel={ui.badgeWindow.footer}
         footerHint={ui.badgeWindow.scrollHint}
         coordinate={ui.badgeWindow.coordinate}
-        pauseLabel={ui.badgeWindow.pause}
-        resumeLabel={ui.badgeWindow.resume}
       />}
 
       <section className="exhibit-marquee" aria-label="地图叙事关键词">
@@ -116,12 +119,19 @@ export default function HomeView() {
           {content.topics.map((topic, index) => {
             const cover = maps.find(({ member, work }) => (work.topic || member?.topic) === topic.id)
             const selected = topicId === topic.id
-            return <article key={topic.id} className={`${selected ? 'is-active ' : ''}spotlight-surface`} onMouseEnter={() => setTopicId(topic.id)} onFocus={() => setTopicId(topic.id)} onPointerMove={updateSpotlight} onPointerLeave={clearSpotlight}>
+            return <article key={topic.id} className={`${selected ? 'is-active ' : ''}spotlight-surface exhibit-topic-card`} onMouseEnter={() => setTopicId(topic.id)} onFocus={() => setTopicId(topic.id)} onPointerMove={updateSpotlight} onPointerLeave={clearSpotlight}>
               <button type="button" className="exhibit-topic-cover" onClick={() => openTopic(topic.id)} aria-label={ui.explore + '：' + topic.name}>
-                {cover && <img src={cover.work.image} alt="" loading="lazy" />}<span>{topic.name} ↗</span>
+                <span className="exhibit-topic-figure">
+                  {cover && <img src={cover.work.image} alt="" loading="lazy" />}
+                  <span className="exhibit-topic-wash" aria-hidden="true" />
+                </span>
+                <span className="exhibit-topic-action">{topicActionLabels[topic.id] ?? 'EXPLORE THEME'} <b aria-hidden="true">↗</b></span>
               </button>
-              <EditableText as="h3" value={topic.name} path={'topics.' + index + '.name'} />
-              <EditableText as="p" value={topic.desc} path={'topics.' + index + '.desc'} multiline />
+              <div className="exhibit-topic-body">
+                <EditableText as="h3" value={topic.name} path={'topics.' + index + '.name'} />
+                <EditableText as="p" value={topic.desc} path={'topics.' + index + '.desc'} multiline />
+                <button type="button" className="exhibit-topic-more" onClick={() => openTopic(topic.id)}>EXPLORE TOPIC <b aria-hidden="true">→</b></button>
+              </div>
             </article>
           })}
         </div>
@@ -137,8 +147,7 @@ export default function HomeView() {
       {reviewItems.length > 0 && <ScrollAnimation direction="right" viewport={{ amount: 0.14 }} disabled={admin}><section className="exhibit-chapter exhibit-voices" aria-label="制图者手记">
         <div className="exhibit-heading"><h2>制图者手记</h2><span className="exhibit-map-meta">FIELD NOTES · {String(reviewItems.length).padStart(2, '0')}</span></div>
         <div className="exhibit-voices-stage">
-          <ReviewMarquee items={reviewItems} />
-          <ImageTrail images={maps.slice(0, 5).map(({ work }) => work.image)} size={86} max={9} />
+          <ReviewMarquee items={reviewItems} trailImages={maps.slice(0, 5).map(({ work }) => work.image)} />
         </div>
       </section></ScrollAnimation>}
       <ScrollAnimation direction="up" viewport={{ amount: 0.12 }} disabled={admin}><footer className="exhibit-chapter exhibit-footer">

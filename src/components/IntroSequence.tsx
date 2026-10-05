@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useContent } from '../lib/contentStore'
 import { HOME_INDEX } from '../lib/pages'
 import { requestScene } from '../lib/sceneBus'
@@ -9,6 +9,152 @@ import { SplitTextReveal } from '../recipes/deepsee-inspired/split-text-reveal/s
 const SEEN_KEY = 'ttf-intro-seen'
 const CHAR_MS = 38 // 打字机每个字符间隔
 const DWELL_MS = 2400 // 文本展示完成后的停留时长（放慢）
+
+const atlasWallPlates = [
+  { src: '/atlas-wall/europe-1894.jpg', label: 'EUROPE · 1894', coordinates: 'N 50° · E 12°' },
+  { src: '/atlas-wall/europe-1844.jpg', label: 'EUROPE · 1844', coordinates: 'N 48° · E 16°' },
+  { src: '/maps/map-01.jpg', label: 'NEAR EAST · 1045', coordinates: 'E 104° · N 35°' },
+  { src: '/maps/map-03.jpg', label: 'NANTANG · FIELD PLATE', coordinates: 'E 118° · N 31°' },
+  { src: '/maps/map-05.jpg', label: 'EASTERN ISLES · 05', coordinates: 'E 121° · N 24°' },
+  { src: '/maps/map-06.jpg', label: 'FRONTIER CHART · 06', coordinates: 'E 108° · N 35°' },
+]
+
+type IntroSparkle = {
+  x: number
+  y: number
+  radius: number
+  alpha: number
+  phase: number
+  driftX: number
+  driftY: number
+}
+
+/**
+ * A small canvas equivalent of the reference Sparkles component used for the
+ * opening instrument. The particles are deliberately kept on a single canvas
+ * so a dense field remains cheap on a full-screen intro. Pointer movement
+ * gently pulls the nearest points toward the cursor and reveals short radial
+ * connections, giving the field the same reactive, astronomical feel as the
+ * reference while retaining Tiantufu's parchment/cinnabar palette.
+ */
+function IntroSparkles({ density = 240, reduced = false }: { density?: number; reduced?: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const context = canvas?.getContext('2d')
+    if (!canvas || !context) return
+
+    const pointer = { x: 0, y: 0, active: false }
+    let width = 0
+    let height = 0
+    let frame = 0
+    let particles: IntroSparkle[] = []
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect()
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      width = Math.max(1, rect.width)
+      height = Math.max(1, rect.height)
+      canvas.width = Math.floor(width * dpr)
+      canvas.height = Math.floor(height * dpr)
+      context.setTransform(dpr, 0, 0, dpr, 0, 0)
+      particles = Array.from({ length: reduced ? Math.min(density, 120) : density }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: 0.45 + Math.random() * 1.2,
+        alpha: 0.18 + Math.random() * 0.55,
+        phase: Math.random() * Math.PI * 2,
+        driftX: (Math.random() - 0.5) * 0.06,
+        driftY: (Math.random() - 0.5) * 0.035,
+      }))
+    }
+
+    const onMove = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      pointer.x = event.clientX - rect.left
+      pointer.y = event.clientY - rect.top
+      pointer.active = pointer.x >= 0 && pointer.x <= width && pointer.y >= 0 && pointer.y <= height
+    }
+    const onLeave = () => { pointer.active = false }
+    const draw = (time: number) => {
+      context.clearRect(0, 0, width, height)
+      const nearby: Array<{ particle: IntroSparkle; distance: number }> = []
+      const elapsed = time * 0.001
+
+      particles.forEach((particle) => {
+        if (!reduced) {
+          particle.x += particle.driftX
+          particle.y += particle.driftY
+          if (particle.x < -8) particle.x = width + 8
+          if (particle.x > width + 8) particle.x = -8
+          if (particle.y < -8) particle.y = height + 8
+          if (particle.y > height + 8) particle.y = -8
+        }
+
+        const dx = particle.x - pointer.x
+        const dy = particle.y - pointer.y
+        const distance = Math.hypot(dx, dy)
+        const influence = pointer.active ? Math.max(0, 1 - distance / 210) : 0
+        if (influence > 0.05 && nearby.length < 22) nearby.push({ particle, distance })
+
+        const twinkle = reduced ? 1 : 0.76 + Math.sin(elapsed * 1.8 + particle.phase) * 0.24
+        const opacity = Math.min(0.92, particle.alpha * twinkle + influence * 0.5)
+        const radius = particle.radius + influence * 1.5
+        context.beginPath()
+        context.fillStyle = `rgba(233,225,210,${opacity})`
+        context.arc(particle.x, particle.y, radius, 0, Math.PI * 2)
+        context.fill()
+
+        if (influence > 0.2) {
+          context.beginPath()
+          context.strokeStyle = `rgba(224,119,99,${influence * 0.24})`
+          context.lineWidth = 0.65
+          context.moveTo(particle.x, particle.y)
+          context.lineTo(pointer.x, pointer.y)
+          context.stroke()
+        }
+      })
+
+      if (pointer.active) {
+        nearby.sort((a, b) => a.distance - b.distance)
+        context.beginPath()
+        nearby.slice(0, 8).forEach(({ particle }, index) => {
+          if (index === 0) context.moveTo(particle.x, particle.y)
+          else context.lineTo(particle.x, particle.y)
+        })
+        context.strokeStyle = 'rgba(224,119,99,0.12)'
+        context.lineWidth = 0.6
+        context.stroke()
+        context.beginPath()
+        context.arc(pointer.x, pointer.y, 32, 0, Math.PI * 2)
+        context.strokeStyle = 'rgba(224,119,99,0.2)'
+        context.lineWidth = 1
+        context.stroke()
+      }
+
+      if (!reduced) frame = window.requestAnimationFrame(draw)
+    }
+
+    resize()
+    window.addEventListener('resize', resize)
+    // Listen on the window so the field can remain click-through; the welcome
+    // buttons stay fully interactive while the sparkle field follows the
+    // pointer anywhere across the opening viewport.
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('pointerleave', onLeave)
+    if (reduced) draw(0)
+    else frame = window.requestAnimationFrame(draw)
+    return () => {
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerleave', onLeave)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [density, reduced])
+
+  return <canvas ref={canvasRef} className="intro-sparkles" aria-hidden="true" />
+}
 
 /**
  * 开场序章（自动播放 + 打字机，无滚轮顿挫）：
@@ -36,6 +182,7 @@ export default function IntroSequence() {
   const timersRef = useRef<number[]>([])
   const typingTimerRef = useRef<number | null>(null)
   const ballRef = useRef<HTMLDivElement>(null)
+  const hemisphereRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const dotHoverRef = useRef<HTMLDivElement>(null)
   const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
@@ -155,6 +302,12 @@ export default function IntroSequence() {
     if (gone) return
     const onMove = (event: MouseEvent) => {
       mouseRef.current = { x: event.clientX, y: event.clientY }
+      // The radial instrument responds to the cursor without forcing React to
+      // re-render the intro on every pointer event.
+      if (hemisphereRef.current) {
+        hemisphereRef.current.style.setProperty('--intro-pointer-x', `${event.clientX}px`)
+        hemisphereRef.current.style.setProperty('--intro-pointer-y', `${event.clientY}px`)
+      }
     }
     window.addEventListener('mousemove', onMove, { passive: true })
     let raf = 0
@@ -240,7 +393,38 @@ export default function IntroSequence() {
 
       {phase === 'welcome' ? (
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
-          <div className="intro-welcome-card relative flex w-[min(720px,94vw)] flex-col items-center px-7 py-10 sm:px-14 sm:py-14">
+          <div ref={hemisphereRef} className="intro-welcome-stage relative flex h-full w-full flex-col items-center justify-center">
+            {/* A large atlas hemisphere anchors the opening page. The map is
+                intentionally a flat image clipped into a dome so it remains
+                crisp, lightweight, and accessible on small screens. */}
+            <div className="intro-hemisphere-scene" aria-hidden="true">
+              <div className="intro-opening-grid" />
+              <div className="intro-radial-burst" />
+              <div className="intro-opening-sparkle-field">
+                <IntroSparkles density={1200} reduced={reduced} />
+              </div>
+              <div className="intro-hemisphere-particles">
+                {Array.from({ length: 18 }, (_, index) => (
+                  <i
+                    key={index}
+                    style={{
+                      '--particle-x': `${8 + ((index * 37) % 84)}%`,
+                      '--particle-y': `${10 + ((index * 53) % 63)}%`,
+                      '--particle-delay': `${(index % 6) * -0.8}s`,
+                    } as CSSProperties}
+                  />
+                ))}
+              </div>
+              <div className="intro-hemisphere-glow" />
+              <div className="intro-hemisphere-map">
+                <img src={maps[0] ?? 'maps/map-01.jpg'} alt="" />
+                <span className="intro-hemisphere-latitude" />
+                <span className="intro-hemisphere-meridian" />
+                <span className="intro-hemisphere-vignette" />
+              </div>
+            </div>
+
+            <div className="intro-welcome-card relative z-10 flex w-[min(720px,94vw)] flex-col items-center px-7 py-10 sm:px-14 sm:py-14">
             <div className="intro-welcome-kicker">TIANTUFU · FIELD ARCHIVE <span>序章 / PROLOGUE</span></div>
             <div className="intro-emblem-shell" aria-hidden="true">
               <span className="intro-emblem-orbit" />
@@ -263,10 +447,11 @@ export default function IntroSequence() {
             className="mt-10 px-14 py-4 text-sm tracking-[0.3em]"
           />
             <span className="mt-3 font-mono text-[9px] tracking-[0.24em] text-parchment-500">{intro.startLabelEn}</span>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="relative z-10 h-full">
+        <div className={`relative z-10 h-full ${chapter === scenes.length - 1 ? 'intro-story-stage--final' : ''}`}>
           {/* 地图背景：章节间交叉淡入淡出，徐徐而动 */}
           {scenes.map((_, i) => (
             <img
@@ -278,6 +463,31 @@ export default function IntroSequence() {
               }`}
             />
           ))}
+          {chapter === scenes.length - 1 && (
+            <div className="intro-photo-wall" aria-hidden="true">
+              {[0, 1, 2].map((row) => (
+                <div className={`intro-photo-wall__row intro-photo-wall__row--${row}`} key={row}>
+                  {[...atlasWallPlates, ...atlasWallPlates].map((plate, index) => (
+                    <figure
+                      className="intro-photo-wall__card"
+                      key={`${row}-${plate.src}-${index}`}
+                      style={{ '--wall-tilt': `${((index + row) % 4 - 1.5) * 1.7}deg` } as CSSProperties}
+                    >
+                      <div className="intro-photo-wall__image-wrap">
+                        <img src={plate.src} alt="" />
+                        <span className="intro-photo-wall__scanline" />
+                      </div>
+                      <figcaption>
+                        <span>{plate.label}</span>
+                        <span>{plate.coordinates}</span>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ))}
+              <div className="intro-photo-wall__veil" />
+            </div>
+          )}
           <div className="atlas-intro-shade absolute inset-0" />
 
           {/* 跳过 */}
@@ -297,7 +507,7 @@ export default function IntroSequence() {
             key={chapter}
             className="intro-copy-shell intro-story-dock pointer-events-none absolute inset-x-0 bottom-16 z-20 mx-auto w-[min(880px,90vw)] px-5 sm:bottom-20"
           >
-            <div className="intro-line intro-story-panel">
+            <div className={`intro-line intro-story-panel ${chapter === scenes.length - 1 ? 'intro-story-panel--wall' : ''}`}>
               <div className="intro-story-rule" aria-hidden="true" />
               <div className="intro-story-meta">
                 <span>{String(chapter + 1).padStart(2, '0')} / {String(scenes.length).padStart(2, '0')}</span>
