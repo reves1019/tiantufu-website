@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import PageBackdrop from './components/PageBackdrop'
 import PageStack from './components/PageStack'
@@ -14,24 +14,33 @@ import AccountManager from './components/admin/AccountManager'
 import CloudPasswordRecovery from './components/admin/CloudPasswordRecovery'
 import MemberToolbar from './components/admin/MemberToolbar'
 import { ContentProvider, useContent } from './lib/contentStore'
-import AboutView from './views/AboutView'
-import ContactView from './views/ContactView'
-import DirectoryView from './views/DirectoryView'
-import EarthView from './views/EarthView'
-import HomeView from './views/HomeView'
-import MemberView from './views/MemberView'
-import NewsView from './views/NewsView'
-import CultureView from './views/CultureView'
-import ContestView from './views/ContestView'
-import WorkView from './views/WorkView'
-import TopicView from './views/TopicView'
-import JoinView from './views/JoinView'
-import CommissionView from './views/CommissionView'
-import FaqView from './views/FaqView'
-import LegalView from './views/LegalView'
-import NewsDetailView from './views/NewsDetailView'
-import WorksView from './views/WorksView'
+// Route views are loaded only when PageStack makes them active. This keeps the
+// initial homepage chunk small while preserving hash navigation and transitions.
+const AboutView = lazy(() => import('./views/AboutView'))
+const ContactView = lazy(() => import('./views/ContactView'))
+const DirectoryView = lazy(() => import('./views/DirectoryView'))
+const EarthView = lazy(() => import('./views/EarthView'))
+const HomeView = lazy(() => import('./views/HomeView'))
+const MemberView = lazy(() => import('./views/MemberView'))
+const NewsView = lazy(() => import('./views/NewsView'))
+const CultureView = lazy(() => import('./views/CultureView'))
+const ContestView = lazy(() => import('./views/ContestView'))
+const WorkView = lazy(() => import('./views/WorkView'))
+const TopicView = lazy(() => import('./views/TopicView'))
+const JoinView = lazy(() => import('./views/JoinView'))
+const CommissionView = lazy(() => import('./views/CommissionView'))
+const FaqView = lazy(() => import('./views/FaqView'))
+const LegalView = lazy(() => import('./views/LegalView'))
+const NewsDetailView = lazy(() => import('./views/NewsDetailView'))
+const WorksView = lazy(() => import('./views/WorksView'))
 import { initMotionPreference } from './lib/motionPreference'
+import './community.css'
+import './studio.css'
+const PalaceView = lazy(() => import('./views/PalaceView'))
+const CommunityView = lazy(() => import('./views/CommunityView'))
+const StudioView = lazy(() => import('./views/StudioView'))
+const LabView = lazy(() => import('./views/LabView'))
+const DesignStudioView = lazy(() => import('./views/DesignStudioView'))
 
 /** 入场幕布：页面加载时向上掀起 */
 function EntranceCurtain() {
@@ -45,7 +54,7 @@ function EntranceCurtain() {
 }
 
 function AppShell() {
-  const { openGate } = useContent()
+  const { openGate, content } = useContent()
 
   useEffect(() => initMotionPreference(), [])
 
@@ -80,7 +89,8 @@ function AppShell() {
       {/* 长页滚动显现 */}
       <RevealObserver />
       {/* 页面叠层：上下淡入淡出切换 */}
-      <PageStack>
+      <Suspense fallback={<div className="atlas-route-loading" role="status" aria-live="polite">LOADING ATLAS…</div>}>
+      <PageStack motion={content.designMotion}>
         <HomeView />
         <AboutView />
         <DirectoryView />
@@ -109,7 +119,13 @@ function AppShell() {
         <LegalView />
         {/* 新闻详情（隐藏页：新闻列表进入） */}
         <NewsDetailView />
+        <PalaceView />
+        <CommunityView />
+        <StudioView />
+        <LabView />
+        <DesignStudioView />
       </PageStack>
+      </Suspense>
       {/* 开场序章（会话首次播放，可跳过） */}
       <IntroSequence />
       {/* 键盘快捷键提示 */}

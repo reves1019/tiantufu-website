@@ -1,0 +1,13 @@
+// 学习/组合入口；单独接入某一组件时也可从对应文件直接导入。
+export { ShaderTabs } from './ShaderTabs'
+export { SilkPoster } from './SilkPoster'
+export { ExpandingStrip } from './ExpandingStrip'
+export { ScratchCard } from './ScratchCard'
+export { ReactionBar } from './ReactionBar'
+export { ImageFlow } from './ImageFlow'
+export type { AtlasCard, SelectionProps, Reaction } from './types'
+export type { ShaderTabsProps } from './ShaderTabs'
+export type { SilkPosterProps } from './SilkPoster'
+export type { ScratchCardProps } from './ScratchCard'
+export type { ReactionBarProps } from './ReactionBar'
+export type { ImageFlowProps } from './ImageFlow'

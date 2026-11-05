@@ -4,8 +4,8 @@ import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../../lib/motionPrefer
 
 export interface ReviewMarqueeItem {
   id: string
-  name: string
-  role: string
+  name: ReactNode
+  role: ReactNode
   body: ReactNode
   avatar?: string
   index?: string
@@ -30,14 +30,14 @@ function ReviewCard({ item, duplicate = false }: { item: ReviewMarqueeItem; dupl
   return <article
     className="review-marquee-card"
     role="listitem"
-    aria-label={`${item.name} · ${item.role}`}
+    aria-label={typeof item.name === 'string' && typeof item.role === 'string' ? `${item.name} · ${item.role}` : undefined}
     aria-hidden={duplicate ? true : undefined}
     tabIndex={duplicate ? undefined : 0}
   >
     <div className="review-marquee-card-header">
       {item.avatar
         ? <img src={item.avatar} alt="" loading="lazy" decoding="async" />
-        : <span className="review-marquee-avatar" aria-hidden="true">{item.name.slice(0, 1)}</span>}
+        : <span className="review-marquee-avatar" aria-hidden="true">{typeof item.name === 'string' ? item.name.slice(0, 1) : '图'}</span>}
       <div>
         <h3>{item.name}</h3>
         <p>{item.role}</p>

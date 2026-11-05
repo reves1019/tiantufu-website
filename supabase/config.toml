@@ -1,0 +1,3 @@
+[functions.push-dispatch]
+# The function checks a separate >=32-character dispatch secret before touching data.
+verify_jwt = false

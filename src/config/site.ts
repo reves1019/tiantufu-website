@@ -137,6 +137,11 @@ export type ViewName =
   | 'faq'
   | 'legal'
   | 'news-detail'
+  | 'palace'
+  | 'community'
+  | 'studio'
+  | 'lab'
+  | 'design-studio'
 
 /** 社团介绍页内容（除 stats 外均为占位文案，后续替换） */
 export const aboutContent = {
@@ -603,7 +608,7 @@ export const works: WorkItem[] = [
 /** 管理员模式配置（前端演示用密码，非真实安全认证；正式部署请改为服务端鉴权） */
 export const adminConfig = {
   username: 'admin', // 默认管理员用户名（首次登录后建议在“修改登录信息”中修改）
-  passcode: 'tiantufu-admin', // 默认初始密码（首次登录后建议修改）
+  passcode: 'LOCAL-DEMO-ONLY-4', // 默认初始密码（首次登录后建议修改）
 }
 
 /** 成员代表作：一人一张代表作，点击卡片进入成员个人页（占位文案后续替换） */

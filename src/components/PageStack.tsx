@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { site, type ViewName } from '../config/site'
 import { getActiveMemberId, setActiveMemberId } from '../lib/memberBus'
 import { getActiveTopicId, setActiveTopicId } from '../lib/topicBus'
 import { getActiveNewsIndex, setActiveNewsIndex } from '../lib/newsBus'
-import { isMotionReduced } from '../lib/motionPreference'
+import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
+import { normalizePageMotion, transitionFrames, type PageMotionSettings } from '../recipes/design-motion/model'
 
 const PAGE_IDS: ViewName[] = [
   ...site.nav.map((item) => item.href.slice(1) as ViewName),
@@ -18,6 +19,11 @@ const PAGE_IDS: ViewName[] = [
   'faq',
   'legal',
   'news-detail',
+  'palace',
+  'community',
+  'studio',
+  'lab',
+  'design-studio',
 ]
 
 const PAGE_LABELS = new Map<string, string>([
@@ -33,9 +39,12 @@ const PAGE_LABELS = new Map<string, string>([
   ['faq', '常见问题'],
   ['legal', '版权与免责'],
   ['news-detail', '新闻详情'],
+  ['palace', '图寻'],
+  ['community', '府员创作室'],
+  ['studio', '个人创作室'],
+  ['lab', '交互图鉴实验室'],
+  ['design-studio', '动效制作'],
 ])
-
-const DEFAULT_TRANSITION_MS = 400
 
 interface PendingNavigation {
   index: number
@@ -45,6 +54,48 @@ interface PendingNavigation {
 
 interface PageStackProps {
   children: React.ReactNode[]
+  motion?: PageMotionSettings
+}
+
+interface PageTransition {
+  from: number
+  to: number
+  history: 'push' | 'none'
+  /** 一次转场的快照；远端同步和制作端调参不能改写正在播放的动画。 */
+  motion: PageMotionSettings
+  duration: number
+  committed: boolean
+}
+
+function PageLayer({ children, label, transition, isTarget }: {
+  children: React.ReactNode
+  label: string
+  transition: PageTransition | null
+  isTarget: boolean
+}) {
+  const node = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!node.current) return
+    node.current.inert = transition ? !isTarget : false
+    if (!transition || transition.motion.preset === 'original' || !transition.duration || isMotionReduced()) return
+    if (typeof node.current.animate !== 'function') return
+    const animation = node.current.animate(
+      transitionFrames(transition.motion.preset, isTarget ? 'enter' : 'leave', transition.motion.distance),
+      { duration: transition.duration, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' },
+    )
+    return () => animation.cancel()
+  }, [transition, isTarget])
+  const original = transition?.motion.preset === 'original'
+  return <div
+    ref={node}
+    className={`absolute inset-0 overflow-hidden ${transition
+      ? isTarget ? `${original ? 'page-enter ' : ''}z-20` : `${original ? 'page-leave ' : ''}z-10 pointer-events-none`
+      : 'z-10 opacity-100'}`}
+    data-transition-preset={transition?.motion.preset ?? 'idle'}
+    data-transition-phase={transition ? isTarget ? 'enter' : 'leave' : 'current'}
+    aria-hidden={transition ? !isTarget : false}
+    aria-label={label}
+  >{children}</div>
 }
 
 function routeFromHash(): number {
@@ -57,18 +108,21 @@ function routeFromHash(): number {
  * 页面叠层：上下淡入淡出切换。只挂载当前页和正在过渡的两页，
  * 让隐藏页面里的 canvas、鼠标监听和定时器随离场一并停止。
  */
-export default function PageStack({ children }: PageStackProps) {
+export default function PageStack({ children, motion }: PageStackProps) {
   const [current, setCurrent] = useState(routeFromHash)
-  const [transition, setTransition] = useState<{ from: number; to: number } | null>(null)
+  const [transition, setTransition] = useState<PageTransition | null>(null)
   const currentRef = useRef(current)
-  const transitionRef = useRef<{ from: number; to: number } | null>(null)
+  const transitionRef = useRef<PageTransition | null>(null)
+  const motionRef = useRef(normalizePageMotion(motion))
   const busyRef = useRef(false)
   const pendingRef = useRef<PendingNavigation | null>(null)
   const navigateRef = useRef<(index: number, history: 'push' | 'none') => void>(() => undefined)
   const transitionTimerRef = useRef<number | null>(null)
   const settleTimerRef = useRef<number | null>(null)
+  const pendingTimerRef = useRef<number | null>(null)
 
   currentRef.current = current
+  motionRef.current = normalizePageMotion(motion)
 
   const broadcast = useCallback((index: number) => {
     const id = PAGE_IDS[index]
@@ -77,9 +131,48 @@ export default function PageStack({ children }: PageStackProps) {
     window.dispatchEvent(new CustomEvent('ttf-scene', { detail: { index, id } }))
   }, [])
 
+  const commitTransition = useCallback((active: PageTransition) => {
+    if (transitionRef.current !== active || active.committed) return
+    active.committed = true
+    currentRef.current = active.to
+    setCurrent(active.to)
+    // 最新意图尚在排队时，不把中间页写进浏览器历史。
+    if (!pendingRef.current && active.history === 'push') {
+      const selectionId = PAGE_IDS[active.to] === 'member' ? getActiveMemberId() : PAGE_IDS[active.to] === 'topic' ? getActiveTopicId() : null
+      const newsIndex = PAGE_IDS[active.to] === 'news-detail' ? getActiveNewsIndex() : null
+      const targetHash = `#${PAGE_IDS[active.to]}${selectionId ? `?id=${encodeURIComponent(selectionId)}` : newsIndex !== null ? `?item=${newsIndex}` : ''}`
+      if (window.location.hash !== targetHash) window.history.pushState(null, '', targetHash)
+    }
+  }, [])
+
+  const settleTransition = useCallback((active: PageTransition) => {
+    if (transitionRef.current !== active) return
+    if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current)
+    if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current)
+    transitionTimerRef.current = null
+    settleTimerRef.current = null
+    commitTransition(active)
+    transitionRef.current = null
+    setTransition(null)
+    busyRef.current = false
+    const pending = pendingRef.current
+    pendingRef.current = null
+    if (pending && pending.index !== active.to) {
+      pendingTimerRef.current = window.setTimeout(() => {
+        pendingTimerRef.current = null
+        navigateRef.current(pending.index, pending.history)
+      }, 0)
+    }
+  }, [commitTransition])
+
   const navigate = useCallback(
     (to: number, history: 'push' | 'none' = 'push') => {
       if (to < 0 || to >= PAGE_IDS.length) return
+      // 在上一转场完成和排队导航启动之间到达的新意图也应该优先。
+      if (pendingTimerRef.current !== null) {
+        window.clearTimeout(pendingTimerRef.current)
+        pendingTimerRef.current = null
+      }
 
       if (busyRef.current) {
         const activeTransition = transitionRef.current
@@ -96,45 +189,41 @@ export default function PageStack({ children }: PageStackProps) {
       const from = currentRef.current
       if (to === from) return
 
-      const transitionMs = isMotionReduced() ? 0 : DEFAULT_TRANSITION_MS
+      const settings = { ...motionRef.current }
+      const transitionMs = isMotionReduced() ? 0 : settings.duration
 
       busyRef.current = true
-      const nextTransition = { from, to }
+      const nextTransition: PageTransition = { from, to, history, motion: settings, duration: transitionMs, committed: false }
       transitionRef.current = nextTransition
       setTransition(nextTransition)
       broadcast(to)
 
-      transitionTimerRef.current = window.setTimeout(() => {
-        currentRef.current = to
-        setCurrent(to)
-
-        // 若过渡过程中已排队新目标，先完成视觉接力，不向 history 写入中间页。
-        if (!pendingRef.current && history === 'push') {
-          const selectionId = PAGE_IDS[to] === 'member' ? getActiveMemberId() : PAGE_IDS[to] === 'topic' ? getActiveTopicId() : null
-          const newsIndex = PAGE_IDS[to] === 'news-detail' ? getActiveNewsIndex() : null
-          const targetHash = `#${PAGE_IDS[to]}${selectionId ? `?id=${encodeURIComponent(selectionId)}` : newsIndex !== null ? `?item=${newsIndex}` : ''}`
-          if (window.location.hash !== targetHash) window.history.pushState(null, '', targetHash)
-        }
-      }, transitionMs)
+      transitionTimerRef.current = window.setTimeout(() => commitTransition(nextTransition), transitionMs)
 
       settleTimerRef.current = window.setTimeout(
-        () => {
-          transitionRef.current = null
-          setTransition(null)
-          busyRef.current = false
-          const pending = pendingRef.current
-          pendingRef.current = null
-          if (pending && pending.index !== to) {
-            window.setTimeout(() => navigateRef.current(pending.index, pending.history), 0)
-          }
-        },
+        () => settleTransition(nextTransition),
         transitionMs + (transitionMs === 0 ? 0 : 120),
       )
     },
-    [broadcast],
+    [broadcast, commitTransition, settleTransition],
   )
 
   navigateRef.current = navigate
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const finishForReducedMotion = () => {
+      const active = transitionRef.current
+      if (active && isMotionReduced()) settleTransition(active)
+    }
+    // WAAPI 不受 CSS 动画时长覆盖控制；切换偏好时移除转场层会取消各层 Animation。
+    window.addEventListener(MOTION_PREFERENCE_EVENT, finishForReducedMotion)
+    media.addEventListener('change', finishForReducedMotion)
+    return () => {
+      window.removeEventListener(MOTION_PREFERENCE_EVENT, finishForReducedMotion)
+      media.removeEventListener('change', finishForReducedMotion)
+    }
+  }, [settleTransition])
 
   useEffect(() => {
     const onRequest = (event: Event) => {
@@ -169,7 +258,9 @@ export default function PageStack({ children }: PageStackProps) {
   useEffect(() => {
     broadcast(currentRef.current)
     const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0]
-    if (raw && !PAGE_IDS.includes(raw as ViewName) && raw !== 'admin') {
+    // Supabase must consume email confirmation / password recovery fragments first.
+    const authCallback = /(?:^#|&)(?:access_token|refresh_token|error|type)=/.test(window.location.hash)
+    if (raw && !authCallback && !PAGE_IDS.includes(raw as ViewName) && raw !== 'admin') {
       window.history.replaceState(null, '', `#${PAGE_IDS[currentRef.current]}`)
     }
   }, [broadcast])
@@ -178,6 +269,8 @@ export default function PageStack({ children }: PageStackProps) {
     () => () => {
       if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current)
       if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current)
+      if (pendingTimerRef.current !== null) window.clearTimeout(pendingTimerRef.current)
+      transitionRef.current = null
     },
     [],
   )
@@ -186,27 +279,20 @@ export default function PageStack({ children }: PageStackProps) {
 
   return (
     <>
-      <main className="atlas-paper fixed inset-0" aria-label="网站内容">
+      <main className="atlas-paper fixed inset-0" aria-label="网站内容" data-page-motion={normalizePageMotion(motion).preset}>
         {children.map((child, index) => {
           if (!activeIndices.has(index)) return null
           const isTarget = transition ? index === transition.to : index === current
           const label = PAGE_LABELS.get(PAGE_IDS[index]) ?? '页面'
           return (
-            <div
+            <PageLayer
               key={PAGE_IDS[index]}
-              ref={(node) => { if (node) node.inert = transition ? !isTarget : false }}
-              className={`absolute inset-0 overflow-hidden ${
-                transition
-                  ? isTarget
-                    ? 'page-enter z-20'
-                    : 'page-leave z-10 pointer-events-none'
-                  : 'z-10 opacity-100'
-              }`}
-              aria-hidden={transition ? !isTarget : false}
-              aria-label={label}
+              transition={transition}
+              isTarget={isTarget}
+              label={label}
             >
               {child}
-            </div>
+            </PageLayer>
           )
         })}
       </main>

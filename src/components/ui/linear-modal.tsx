@@ -19,6 +19,7 @@ export function LinearModal({ trigger, title, description, image, kicker, footer
   const closeRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const wasOpenRef = useRef(false)
   const titleId = useId()
   const descriptionId = useId()
   const dialogId = useId()
@@ -71,7 +72,8 @@ export function LinearModal({ trigger, title, description, image, kicker, footer
   }, [open])
 
   useEffect(() => {
-    if (!open) triggerRef.current?.focus()
+    if (wasOpenRef.current && !open) triggerRef.current?.focus({ preventScroll: true })
+    wasOpenRef.current = open
   }, [open])
 
   const close = () => setOpen(false)
@@ -88,7 +90,7 @@ export function LinearModal({ trigger, title, description, image, kicker, footer
     >{trigger}</button>
     {open && createPortal(
       <div className="linear-modal-root" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close() }}>
-        <div ref={dialogRef} id={dialogId} className="linear-modal-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} tabIndex={-1}>
+        <div ref={dialogRef} id={dialogId} className={`linear-modal-dialog${image ? '' : ' is-text-only'}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} tabIndex={-1}>
           <button ref={closeRef} type="button" className="linear-modal-close" onClick={close} aria-label="关闭窗口">×</button>
           {image && <div className="linear-modal-image-wrap"><img src={image.src} alt={image.alt ?? ''} /></div>}
           <div className="linear-modal-copy">

@@ -95,6 +95,7 @@ export async function signInCloudAccount(email: string, password: string, rememb
 
 export async function registerCloudMember(input: {
   email: string
+  qq?: string
   password: string
   username: string
   displayName: string
@@ -106,10 +107,12 @@ export async function registerCloudMember(input: {
     email: input.email,
     password: input.password,
     options: {
+      emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
       data: {
         username: input.username.trim(),
         display_name: input.displayName.trim(),
         note: input.note?.trim() ?? '',
+        qq_number: input.qq?.trim() ?? '',
       },
     },
   })

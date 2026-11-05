@@ -4,13 +4,17 @@ import { useContent } from '../lib/contentStore'
 import { clampView, zoomAt, type MapView } from '../lib/mapViewport'
 import { isMapMotionSettled, stepMapMotion, type MapMotionState } from '../lib/mapMotion'
 import { isMotionReduced, MOTION_PREFERENCE_EVENT } from '../lib/motionPreference'
+import Discussion from './community/Discussion'
+import { exhibitionCatalog } from '../lib/exhibitionCatalog'
 
-export interface LightboxImage { src: string; title: string; desc?: string; story?: string; author?: string }
+export interface LightboxImage { src: string; title: string; desc?: string; story?: string; author?: string; workKey?: string }
 interface Props { images: LightboxImage[]; index: number; onClose: () => void; onIndexChange?: (index: number) => void }
 const initialView: MapView = { zoom: 1, x: 0, y: 0 }
 
-function MapCanvas({ item }: { item: LightboxImage }) {
+function MapCanvas({ item, onLogin }: { item: LightboxImage; onLogin: () => void }) {
   const { content } = useContent()
+  const entry = exhibitionCatalog(content.worksArchive, content.members, content.worksCategories[0]).find(({work,member}) => work.image === item.src || work.fullImage === item.src || (member?.work.image === work.image && member.work.fullImage === item.src))
+  const workKey = item.workKey ?? (entry ? entry.index < 0 ? `member:${entry.member!.id}` : `archive:${entry.work.id}` : undefined)
   const ui = content.ui.lightbox
   const viewport = useRef<HTMLDivElement>(null)
   const image = useRef<HTMLImageElement>(null)
@@ -170,11 +174,12 @@ function MapCanvas({ item }: { item: LightboxImage }) {
       <div ref={minimap} className="map-minimap" aria-label={ui.overview} aria-hidden="true"><img src={item.src} alt="" draggable={false} /><span ref={minimapWindow} /></div>
     </div>
     <p className="map-reader-guide">{ui.guide}</p>
+    {workKey && <Discussion key={workKey} workKey={workKey} onLogin={onLogin} />}
   </div>
 }
 
 export default function Lightbox({ images, index, onClose, onIndexChange }: Props) {
-  const { content } = useContent()
+  const { content, openGate } = useContent()
   const ui = content.ui.lightbox
   const dialog = useRef<HTMLDivElement>(null)
   const [notesOpen, setNotesOpen] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
@@ -193,11 +198,11 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Prop
       const current = callbacks.current
       if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); current.onClose() }
       else if (event.key === 'Tab') {
-        const nodes = [...root.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"], a[href]')].filter((node) => node.getClientRects().length)
+        const nodes = [...root.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex="0"], a[href]')].filter((node) => node.getClientRects().length)
         const first = nodes[0], last = nodes[nodes.length - 1]
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
-      } else if (!event.defaultPrevented && (event.key === 'ArrowRight' || event.key === 'ArrowLeft') && current.count > 1) {
+      } else if (!(event.target instanceof HTMLElement && event.target.closest('input,textarea,select,[contenteditable=true]')) && !event.defaultPrevented && (event.key === 'ArrowRight' || event.key === 'ArrowLeft') && current.count > 1) {
         event.preventDefault(); current.onIndexChange?.((current.index + (event.key === 'ArrowRight' ? 1 : -1) + current.count) % current.count)
       }
     }
@@ -207,7 +212,7 @@ export default function Lightbox({ images, index, onClose, onIndexChange }: Prop
   if (!item) return null
   return createPortal(<div ref={dialog} role="dialog" aria-modal="true" aria-label={ui.dialogLabel} className="map-reader atlas-night">
     <header className="map-reader-heading"><div><h2>{item.title}</h2><span className="map-reader-number">{String(index + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}</span></div><div className="reader-header-actions"><button type="button" aria-expanded={notesOpen} aria-controls="map-reading-notes" onClick={() => setNotesOpen(!notesOpen)}>{notesOpen ? content.ui.exhibition.hideStory : content.ui.exhibition.viewStory}</button><button type="button" data-testid="lightbox-close" onClick={onClose} aria-label={ui.close}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></div></header>
-    <div className={`map-reader-body ${notesOpen ? '' : 'reader-without-notes'}`}><MapCanvas key={`${item.src}-${index}`} item={item} />{notesOpen && <aside id="map-reading-notes" className="map-reader-story"><h3>{ui.storyTitle}</h3>{item.author && <p className="map-reader-author">{item.author}</p>}{item.desc && !item.desc.includes('占位') && <p className="map-reader-description">{item.desc}</p>}<div className="map-reader-note">{item.story || ui.pendingStory}</div></aside>}</div>
+    <div className={`map-reader-body ${notesOpen ? '' : 'reader-without-notes'}`}><MapCanvas key={`${item.src}-${index}`} item={item} onLogin={() => { onClose(); openGate() }} />{notesOpen && <aside id="map-reading-notes" className="map-reader-story"><h3>{ui.storyTitle}</h3>{item.author && <p className="map-reader-author">{item.author}</p>}{item.desc && !item.desc.includes('占位') && <p className="map-reader-description">{item.desc}</p>}<div className="map-reader-note">{item.story || ui.pendingStory}</div></aside>}</div>
     {images.length > 1 && <nav className="reader-bottom-nav" aria-label={ui.dialogLabel}><button type="button" onClick={() => onIndexChange?.((index - 1 + images.length) % images.length)}>← {ui.previous}</button><span>{item.author}</span><button type="button" onClick={() => onIndexChange?.((index + 1) % images.length)}>{ui.next} →</button></nav>}
   </div>, document.body)
 }

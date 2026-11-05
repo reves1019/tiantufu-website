@@ -12,6 +12,7 @@ import { useExhibitionMotion } from '../lib/useExhibitionMotion'
 import { CreativeButton, CreativeButtonLink } from '../components/ui/creative-button'
 import { AccordionGallery } from '../components/ui/accordion-gallery'
 import { clearSpotlight, updateSpotlight } from '../components/Spotlight'
+import GalleryPanel from '../components/community/GalleryPanel'
 
 export default function MemberView() {
   const { content, admin, account } = useContent()
@@ -54,6 +55,7 @@ export default function MemberView() {
         {(admin || representative.work.story) && <section className="author-statement" data-exhibit-reveal><EditableText as="h2" value={exhibit.workStory} path="ui.exhibition.workStory" /><EditableText as="p" multiline value={representative.work.story ?? ''} path={`${representative.path}.story`} className="reading-copy" /></section>}
       </>}
       {(admin || (member.bio && !member.bio.includes('占位'))) && <section className="author-statement"><EditableText as="h2" value={exhibit.memberStory} path="ui.exhibition.memberStory" /><EditableText as="p" multiline value={member.bio} path={`members.${memberIndex}.bio`} className="reading-copy" /></section>}
+      <GalleryPanel memberId={member.id} />
       {gallery.length > 1 && <section className="author-collection" data-exhibit-reveal>
         <div className="author-collection-heading">
           <EditableText as="h2" value={exhibit.memberCollection} path="ui.exhibition.memberCollection" />

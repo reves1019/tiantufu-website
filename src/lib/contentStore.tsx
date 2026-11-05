@@ -56,6 +56,9 @@ import { CONTENT_KEY, idbGet, idbSet, idbSetMany, idbSupported } from './idbStor
 import { attachApprovedMember, makeApprovedMemberCard } from './memberFactory'
 import { classifyCloudSnapshot, compareCloudVersions, isCurrentCloudSave } from './cloudVersion'
 import { prepareSharedImages } from './sharedImages'
+import { getCommunityAccess } from './community'
+import { activateEmailMember, normalizeRegistrationEmail } from './emailRegistration'
+import { defaultPageMotion, normalizePageMotion, type PageMotionSettings } from '../recipes/design-motion/model'
 import {
   approveCloudMember,
   changeCloudPassword,
@@ -104,6 +107,7 @@ export interface SiteContent {
   ui: typeof defaultUiText
   media: typeof defaultMedia
   homeAtlas: typeof defaultHomeAtlas
+  designMotion: PageMotionSettings
 }
 
 // v4：内容主存储迁移至 IndexedDB（可容纳含 Base64 大图的内容），localStorage 仅保留小体积镜像。
@@ -132,6 +136,7 @@ export const defaultContent: SiteContent = {
   ui: defaultUiText,
   media: defaultMedia,
   homeAtlas: defaultHomeAtlas,
+  designMotion: { ...defaultPageMotion },
 }
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -232,7 +237,7 @@ function withArchiveDefaults(content: SiteContent): SiteContent {
         if (!worksArchive.some((entry) => entry.id === work.id)) worksArchive.push(work)
       })
   })
-  return { ...content, site: { ...content.site, nav: content.site.nav.map((item) =>
+  return { ...content, designMotion: normalizePageMotion(content.designMotion), site: { ...content.site, nav: content.site.nav.map((item) =>
     item.href === '#earth' && item.label === '数码地球' ? { ...item, label: defaultSite.nav[3].label, desc: defaultSite.nav[3].desc } : item),
   }, earth: { ...content.earth,
     subtitle: content.earth.subtitle === '以文字与代码构建的世界' ? defaultEarth.subtitle : content.earth.subtitle,
@@ -351,11 +356,9 @@ interface ContentContextValue {
     remember: boolean,
   ) => Promise<{ ok: boolean; error?: string; isAdmin?: boolean; account?: AccountRecord | null }>
   registerAccount: (
-    username: string,
+    email: string,
     displayName: string,
     password: string,
-    note?: string,
-    email?: string,
   ) => Promise<{ ok: boolean; error?: string }>
   logoutAccount: () => void
   approveAccount: (accountId: string, topic?: string) => Promise<{ ok: boolean; error?: string }>
@@ -685,6 +688,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       }
       setAccountsReady(false)
       try {
+        // Verify OTP ownership before rejecting a newly created pending profile.
+        // Legacy projects without the RPC retain existing password login behavior.
+        await activateEmailMember().catch(() => false)
         const profile = await getCloudProfile(userId)
         if (cancelled || revision !== userSyncRevision) return
         if (!profile || profile.status !== 'approved') {
@@ -1191,6 +1197,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       if (cloudMode) {
         try {
           const result = await signInCloudAccount(username.trim(), password, remember)
+          await activateEmailMember().catch(() => false)
           const profile = result.user ? await getCloudProfile(result.user.id) : null
           if (!profile) {
             await signOutCloudAccount().catch(() => undefined)
@@ -1215,7 +1222,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new CustomEvent('ttf-account', { detail: { account: null } }))
             return {
               ok: false,
-              error: acc.status === 'pending' ? '成员申请仍在等待管理员审核' : '该申请未通过审核，请联系管理员',
+              error: acc.status === 'pending' ? '请先完成邮箱验证；若已验证仍无法登录，请联系管理员' : '账号暂不可用，请联系管理员',
             }
           }
           setAccount(acc)
@@ -1257,39 +1264,36 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   )
 
   const registerAccount = useCallback(
-    async (username: string, displayName: string, password: string, note?: string, email?: string) => {
-      if (!accountsReady || !hydrated) return { ok: false, error: '账号与网站资料仍在加载，请稍后重试' }
+    async (email: string, displayName: string, password: string) => {
+      if (!accountsReady || !hydrated) return { ok: false, error: '账号资料仍在加载，请稍后重试' }
+      if (accountRef.current) return { ok: false, error: '请先退出当前账号' }
+      let normalized: string
+      try { normalized = normalizeRegistrationEmail(email) } catch (e) { return { ok: false, error: (e as Error).message } }
+      // Internal public handle is independent of the private email/QQ address.
+      const username = `user_${crypto.randomUUID().replaceAll('-', '').slice(0, 18)}`
+      const validationError = validateMemberRegistration(username, displayName, password, 8)
+      if (validationError) return { ok: false, error: validationError }
       if (cloudMode) {
-        const validationError = validateMemberRegistration(username, displayName, password, 8)
-        if (validationError) return { ok: false, error: validationError }
-        if (!email?.trim()) return { ok: false, error: '请填写用于登录和验证的邮箱地址' }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.trim().length > 254) {
-          return { ok: false, error: '请填写有效的邮箱地址' }
-        }
-        if (accountRef.current) return { ok: false, error: '请先退出当前账号，再提交新的成员注册申请' }
         try {
-          const result = await registerCloudMember({
-            email: email.trim().toLowerCase(),
-            password,
-            username,
-            displayName,
-            note,
-          })
-          if (!result.user) return { ok: false, error: '申请未能提交，请检查邮箱后重试' }
-          // Email confirmation may be disabled. A successful member signup can
-          // then return a live session; immediately end it because the account
-          // must remain pending until an administrator approves it.
+          const result = await registerCloudMember({ email: normalized, password, username, displayName })
+          if (!result.user) return { ok: false, error: '注册未完成，请重试' }
+          // A server auto-confirm setting does not prove email ownership.
+          // End the unverified session; verified email activation is handled separately.
           if (result.session) await signOutCloudAccount().catch(() => undefined)
           return { ok: true }
         } catch (error) {
           const message = error instanceof Error ? error.message : ''
-          return { ok: false, error: /already|registered/i.test(message) ? '该邮箱已注册，请直接登录或联系管理员' : '注册失败，请检查邮箱格式后重试' }
+          return { ok: false, error: /already|registered/i.test(message) ? '该邮箱已注册，请登录' : '注册失败，请稍后重试' }
         }
       }
-      const result = await registerMemberAccount(accountsRef.current, username, displayName, password, note)
+      if (accountsRef.current.some(a => a.email?.trim().toLowerCase() === normalized)) return { ok: false, error: '该邮箱已注册，请登录' }
+      const result = await registerMemberAccount(accountsRef.current, username, displayName, password)
       if (!result.ok || !result.account) return { ok: false, error: result.error ?? '注册失败' }
+      result.account.email = normalized
+      result.account.status = 'approved'
+      // Local mode permits discussion demos, never automatically verifies QQ ownership.
       const persisted = await applyAccounts([...accountsRef.current, result.account])
-      if (!persisted) return { ok: false, error: '申请没有写入本机存储，请检查浏览器空间后重试' }
+      if (!persisted) return { ok: false, error: '账号未能保存，请检查浏览器空间后重试' }
       return { ok: true }
     },
     [accountsReady, hydrated, applyAccounts, cloudMode],
@@ -1417,6 +1421,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     async (patch: Partial<Pick<AccountRecord, 'displayName' | 'bio' | 'topic' | 'avatar'>>) => {
       const cur = accountRef.current
       if (!cur) return { ok: false, error: '未登录' }
+      try {
+        if (!(await getCommunityAccess(cur)).canEdit) return { ok: false, error: '创作者账号才能编辑个人展示资料' }
+      } catch { return { ok: false, error: '暂时无法核实府员权限，请重试' } }
       const allowedPatch = filterEditableProfilePatch(cur.role, patch)
       const nextAccounts = accountsRef.current.map((a) =>
         a.id === cur.id ? { ...a, ...allowedPatch, updatedAt: Date.now() } : a,

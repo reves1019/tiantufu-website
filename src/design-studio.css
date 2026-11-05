@@ -1,0 +1,43 @@
+.design-studio { height:100%; overflow-y:auto; overflow-x:hidden; background:#101310; color:#e9e0cf; padding:130px clamp(16px,5vw,72px) 160px; font-family:var(--font-serif,serif); }
+.design-studio :is(input,select,textarea,button) { font:inherit; }
+.design-studio :is(button,a,input,select,textarea,summary):focus-visible { outline:2px solid #edc981; outline-offset:4px; }
+.design-studio a { color:#d9b77c; }
+.design-studio :where(button:not(.dm-motion-button)) { cursor:pointer; border:1px solid #b9a17655; background:#22291f; padding:10px 14px; border-radius:6px; color:inherit; }
+.design-studio button:disabled { opacity:.45; cursor:default; }
+.ds-header { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; padding-bottom:32px; border-bottom:1px solid #b9a17640; }
+.ds-kicker { font:10px/1.7 monospace; letter-spacing:.22em; color:#b9a176; }
+.ds-header h1 { font-size:clamp(30px,4vw,55px); font-weight:400; margin:16px 0; }
+.ds-header h1 span { color:#b44c36; }.ds-header p:not(.ds-kicker) { color:#aeb1a2; font-size:14px; line-height:1.8; }
+.ds-header>a { white-space:nowrap; font-size:13px; padding-top:16px; }
+.ds-summary { display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:24px 0 32px; color:#b8b9a8; font-size:13px; }
+.ds-summary strong { color:#e0c99c; font:20px monospace; margin-right:5px; }.ds-summary a { margin-left:auto; }.ds-summary a+a { margin-left:0; }
+.ds-layout { display:grid; grid-template-columns:minmax(230px,300px) minmax(0,1fr); gap:32px; max-width:1400px; margin:auto; }
+.ds-library { min-width:0; }.ds-workbench { min-width:0; display:flex; flex-direction:column; gap:22px; }
+.ds-filter { display:flex; flex-direction:column; gap:14px; }.ds-filter label { display:flex; flex-direction:column; gap:8px; font-size:12px; color:#bbb8a5; }
+.design-studio :is(input[type=search],input:not([type]),select,textarea) { width:100%; min-width:0; color:#e4ddc7; background:#171e18; border:1px solid #ac956642; border-radius:6px; padding:10px 12px; }
+.ds-categories { display:flex; gap:6px; flex-wrap:wrap; margin-top:20px; }.ds-categories button { font-size:12px; padding:7px 12px; border-radius:20px; background:transparent; }
+.ds-categories [aria-pressed=true] { background:#b34230; border-color:#b34230; }.ds-count { color:#898f7f; font-size:11px; margin:16px 0; }
+.ds-recipes { display:grid; gap:10px; }.ds-recipes .ds-recipe { text-align:left; background:#171d17; border:1px solid #a28e622e; padding:18px; }
+.ds-recipe small { color:#9b9e8b; font-size:10px; }.ds-recipe strong { display:flex; justify-content:space-between; font-size:19px; font-weight:400; margin:8px 0; }.ds-recipe strong span { color:#ac9566; }
+.ds-recipe p { font-size:12px; color:#adb09f; line-height:1.7; margin:0; }.ds-recipes .ds-recipe[aria-pressed=true] { border-color:#bc9c61; background:#252c20; box-shadow:inset 3px 0 #bc9c61; }
+.ds-preview,.ds-parameters,.ds-apply,.ds-code { border:1px solid #b69e6c30; border-radius:10px; padding:24px; background:#141b15; min-width:0; }
+.ds-preview>header,.ds-code>header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; }
+.ds-preview h2 { font-weight:400; font-size:28px; margin:4px 0; }.ds-preview>header>button { white-space:nowrap; }
+.ds-preview-area { min-width:0; }.ds-preview-text,.ds-preview-button { min-height:290px; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:25px; border-radius:8px; background:radial-gradient(ellipse at center,#29372b,#101713 75%); overflow:hidden; }
+.ds-preview-text { font-size:clamp(24px,4vw,42px); line-height:1.6; }.ds-preview-button>p { font:12px monospace; color:#a5ad99; margin-top:26px; }
+.ds-reduce { display:flex; align-items:center; gap:8px; font-size:12px; color:#b4b7a5; margin:22px 0 10px; }.ds-use { color:#929c89; font-size:12px; margin:0; }
+.ds-parameters h3,.ds-apply h3,.ds-code h3 { font-size:18px; font-weight:400; margin:0 0 18px; }.ds-sliders { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 28px; }
+.ds-sliders label { display:flex; align-items:center; gap:8px; flex-wrap:wrap; color:#bfc2ae; font-size:12px; }.ds-sliders output { margin-left:auto; color:#d6bf92; font:12px monospace; }
+.ds-sliders input[type=range] { width:100%; accent-color:#c2a269; }.ds-sliders input[type=color] { background:none; width:45px; height:30px; margin-left:auto; }
+.ds-title-input { display:block; font-size:12px; color:#bfc2ae; margin-top:22px; }.ds-title-input input { margin-top:8px; }.ds-parameters>button { margin-top:20px; font-size:12px; }
+.ds-apply>p,.ds-muted { font-size:13px; color:#b3b7a3; line-height:1.8; }.ds-apply .ds-primary { background:#ac4030; border-color:#ac4030; padding:12px 20px; }
+.ds-apply-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px; font-size:12px; }.ds-apply .ds-save { color:#a0ad8b; font-size:11px; margin-bottom:0; }
+.ds-code>header { flex-wrap:wrap; }.ds-code>header>div { display:flex; gap:8px; flex-wrap:wrap; font-size:12px; }.ds-code h3 { margin:0; }.ds-code>p { color:#a6ad97; font-size:12px; }
+.ds-code textarea { min-height:270px; resize:vertical; font:12px/1.7 Consolas,monospace; white-space:pre; overflow:auto; }
+.ds-message { color:#d6c49a; font-size:13px; line-height:1.7; margin:0; }.ds-message:empty { display:none; }
+.ds-sources,.ds-source-directory { border-top:1px solid #ae976338; padding-top:20px; font-size:13px; color:#aab19e; line-height:1.8; }
+.ds-sources summary,.ds-source-directory summary { cursor:pointer; color:#d7c79f; }.ds-sources article { border-top:1px solid #ae976325; margin-top:18px; padding-top:16px; }.ds-sources h4 { font-weight:400; }.ds-sources small { color:#7f8c76; }
+.ds-source-directory { margin-top:40px; }.ds-source-directory>div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding-top:24px; }.ds-source-directory article { min-width:0; overflow-wrap:anywhere; border:1px solid #ae976325; padding:20px; }.ds-source-directory p { font-size:12px; }
+.ds-locked { max-width:700px; margin:40px auto; }.ds-locked h1 { font-size:42px; font-weight:400; }.ds-locked p { color:#b9bcaa; }.ds-locked a { margin-left:22px; }
+@media(max-width:900px) { .ds-layout { grid-template-columns:1fr; gap:24px; }.ds-filter { flex-direction:row; }.ds-filter label { flex:1; min-width:0; }.ds-recipes { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:350px; overflow:auto; padding:4px; }.ds-summary { gap:16px; } }
+@media(max-width:480px) { .ds-header { display:block; }.ds-header>a { display:inline-block; }.ds-summary a { margin-left:0; }.ds-preview,.ds-parameters,.ds-apply,.ds-code { padding:16px; }.ds-sliders { grid-template-columns:1fr; }.ds-recipes .ds-recipe { padding:12px; }.ds-recipe strong { font-size:17px; }.ds-source-directory>div { grid-template-columns:1fr; }.ds-preview-text,.ds-preview-button { padding:18px; min-height:240px; } }

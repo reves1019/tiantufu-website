@@ -30,7 +30,7 @@ export default function WorksView() {
   const catalogue = useMemo(() => exhibitionCatalog(content.worksArchive, content.members, content.ui.member.representative), [content.worksArchive, content.members, content.ui.member.representative])
   const members = content.members.filter(isMemberPublished)
   const filtered = catalogue.filter(({ work, member }) => (!topic || work.topic === topic) && (!category || work.category === category) && (!author || member?.id === author || work.author === author))
-  const images = filtered.map(({ work, member }) => ({ src: work.fullImage ?? (member?.work.image === work.image ? member.work.fullImage : undefined) ?? work.image, title: work.title, desc: work.desc, author: work.author, story: work.story }))
+  const images = filtered.map(({ work, member, index }) => ({ src: work.fullImage ?? (member?.work.image === work.image ? member.work.fullImage : undefined) ?? work.image, title: work.title, desc: work.desc, author: work.author, story: work.story, workKey: index < 0 && member ? `member:${member.id}` : `archive:${work.id}` }))
   useGSAP(() => {
     if (admin || !root.current) return
     const media = gsap.matchMedia()
@@ -57,7 +57,14 @@ export default function WorksView() {
   return <section ref={root} id="works" data-scroll-root className="atlas-night collection-page relative h-full w-full overflow-x-hidden overflow-y-auto">
     <div className="collection-inner">
       <header className="collection-header">
-        <div><EditableText as="h1" value={exhibit.catalogueTitle} path="ui.exhibition.catalogueTitle" /><EditableText as="p" value={exhibit.catalogueIntro} path="ui.exhibition.catalogueIntro" className="reading-copy" /><button type="button" className="collection-text-link" onClick={() => list.current?.scrollIntoView({ behavior: isMotionReduced() ? 'auto' : 'smooth', block: 'start' })}>{exhibit.browseCatalogue} ↓</button></div>
+        <div>
+          <div className="title-lockup editorial-title-lockup">
+            <p className="title-en">THE WORKS ARCHIVE</p>
+            <EditableText as="h1" value={exhibit.catalogueTitle} path="ui.exhibition.catalogueTitle" />
+          </div>
+          <EditableText as="p" value={exhibit.catalogueIntro} path="ui.exhibition.catalogueIntro" className="reading-copy" />
+          <button type="button" className="collection-text-link" aria-label={exhibit.browseCatalogue} onClick={() => list.current?.scrollIntoView({ behavior: isMotionReduced() ? 'auto' : 'smooth', block: 'start' })}><span>BROWSE THE ARCHIVE</span><b aria-hidden="true">↓</b></button>
+        </div>
         {featured && <button type="button" className="collection-feature" onClick={() => { reset(); setLightboxIndex(0) }} aria-label={`${ui.readMap} · ${featured.work.title}`}><img src={featured.work.image} alt={featured.work.title} loading="eager" /><span>{featured.work.title}<small>{featured.work.author} · {ui.readMap} ↗</small></span></button>}
       </header>
         <div ref={list} className="collection-list" id="collection-catalogue">

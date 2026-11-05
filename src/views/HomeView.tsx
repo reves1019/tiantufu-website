@@ -20,6 +20,7 @@ import { MapBadgeWindow } from '../components/ui/map-badge-window'
 import { brandAssets, heroConfig } from '../config/site'
 import { clearSpotlight, updateSpotlight } from '../components/Spotlight'
 import ScrollAnimation from '../components/ui/scroll-animation'
+import PalaceView from './PalaceView'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -40,12 +41,17 @@ export default function HomeView() {
   const author = authors[Math.min(authorIndex, authors.length - 1)]
   const reviewItems: ReviewMarqueeItem[] = useMemo(() => authors.map((member, index) => ({
     id: member.id,
-    name: member.name,
-    role: member.role,
+    name: <EditableText as="span" value={member.name} path={`members.${content.members.findIndex((entry) => entry.id === member.id)}.name`} />,
+    role: <EditableText as="span" value={member.role} path={`members.${content.members.findIndex((entry) => entry.id === member.id)}.role`} />,
     avatar: member.avatar,
     index: `FIELD NOTE / ${String(index + 1).padStart(2, '0')}`,
-    body: member.signature?.trim() || (member.bio && !member.bio.includes('占位') ? member.bio : '从一条经线开始，记录一段仍在展开的山河。'),
-  })), [authors])
+    body: <EditableText
+      as="span"
+      multiline
+      value={member.signature?.trim() || (member.bio && !member.bio.includes('占位') ? member.bio : '从一条经线开始，记录一段仍在展开的山河。')}
+      path={`members.${content.members.findIndex((entry) => entry.id === member.id)}.${member.signature?.trim() ? 'signature' : 'bio'}`}
+    />,
+  })), [authors, content.members])
   const ui = content.ui.exhibition
   const images = maps.map(catalogueImage)
 
@@ -70,7 +76,10 @@ export default function HomeView() {
     <div className="exhibit-container">
       <header className="exhibit-hero">
         <ScrollAnimation direction="left" viewport={{ amount: 0.3, margin: '0px 0px -8% 0px' }} disabled={admin}>
-          <EditableText as="h1" value={ui.title} path="ui.exhibition.title" multiline className="exhibit-title mx-auto w-full max-w-6xl" />
+          <div className="title-lockup exhibit-title-lockup">
+            <p className="title-en">A SHEET OF LAND / AN INFINITE WORLD</p>
+            <EditableText as="h1" value={ui.title} path="ui.exhibition.title" multiline className="exhibit-title mx-auto w-full max-w-6xl" />
+          </div>
         </ScrollAnimation>
         <ScrollAnimation direction="left" viewport={{ amount: 0.3, margin: '0px 0px -8% 0px' }} disabled={admin}>
           <EditableText as="p" value={ui.intro} path="ui.exhibition.intro" multiline className="exhibit-intro" />
@@ -81,6 +90,10 @@ export default function HomeView() {
             <FlowButton text="ABOUT TIANTUFU" aria-label={content.ui.home.aboutLabel} onClick={() => requestScene(ABOUT_INDEX)} />
           </div>
         </ScrollAnimation>
+      </header>
+
+      <PalaceView embedded />
+
         {maps[0] ? <figure className="exhibit-hero-map">
           <button type="button" className="exhibit-map-cover" aria-label={ui.readMap + '：' + maps[0].work.title} onClick={() => setReading(0)}>
             <img src={maps[0].work.image} alt={maps[0].work.title} loading="eager" decoding="async" />
@@ -88,7 +101,7 @@ export default function HomeView() {
           </button>
           <figcaption><span>{maps[0].work.title}</span><span className="exhibit-map-meta">NO.01 · {maps[0].work.year ?? maps[0].work.category} · {maps[0].work.author}</span></figcaption>
         </figure> : <p className="exhibit-empty">{ui.empty}</p>}
-      </header>
+
 
       {maps[0] && <MapBadgeWindow
         mapSrc={content.media.maps[0] ?? heroConfig.maps.srcs[0]}

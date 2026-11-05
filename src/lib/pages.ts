@@ -13,6 +13,11 @@ export const COMMISSION_INDEX = MAIN_COUNT + 7 // 约稿服务
 export const FAQ_INDEX = MAIN_COUNT + 8 // 常见问题
 export const LEGAL_INDEX = MAIN_COUNT + 9 // 版权与免责
 export const NEWS_DETAIL_INDEX = MAIN_COUNT + 10 // 新闻详情
+export const PALACE_INDEX = MAIN_COUNT + 11
+export const COMMUNITY_INDEX = MAIN_COUNT + 12
+export const STUDIO_INDEX = MAIN_COUNT + 13
+export const LAB_INDEX = MAIN_COUNT + 14
+export const DESIGN_STUDIO_INDEX = MAIN_COUNT + 15
 
 export const HOME_INDEX = 0
 export const ABOUT_INDEX = site.nav.findIndex((item) => item.href === '#about')

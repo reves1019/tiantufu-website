@@ -90,7 +90,8 @@ export default function AdminToolbar() {
   const btnCls = 'font-mono text-[11px] tracking-[0.2em] text-parchment-300 transition-colors hover:text-brand-400 disabled:cursor-not-allowed disabled:opacity-45'
 
   return (
-    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[70] mx-auto flex max-h-[30dvh] max-w-[1200px] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 overflow-y-auto border border-brand-500/35 bg-ink-950/96 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.46)] backdrop-blur-md sm:bottom-5 sm:inset-x-auto sm:w-max sm:rounded-md sm:px-5">
+    <>
+    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-[70] mx-auto flex max-h-[30dvh] max-w-[1200px] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 overflow-y-auto border border-brand-500/35 bg-ink-950/96 px-3 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.46)] backdrop-blur-md sm:bottom-5 sm:rounded-md sm:px-5">
       <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] text-brand-400">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
         管理员模式 · @{account?.username ?? ''}
@@ -127,6 +128,7 @@ export default function AdminToolbar() {
       >
         {hydrated ? '内容管理' : '内容加载中…'}
       </button>
+      <a href="#design-studio" className={btnCls}>动效制作</a>
       <span className="hidden h-4 w-px bg-white/15 sm:block" />
       <button
         type="button"
@@ -140,6 +142,7 @@ export default function AdminToolbar() {
       <button type="button" onClick={handleExport} disabled={!hydrated} className={btnCls}>
         导出 JSON
       </button>
+      <a className={btnCls} href="#community?tab=members">QQ 白名单</a>
       <button type="button" onClick={() => setProfileOpen(true)} disabled={!accountsReady || !hydrated} className={btnCls}>
         账号资料
       </button>
@@ -179,8 +182,10 @@ export default function AdminToolbar() {
       >
         退出登录
       </button>
+    </div>
+      {/* Keep viewport overlays outside the blurred, scroll-clipped toolbar. */}
       <CredentialsModal open={credOpen} onClose={() => setCredOpen(false)} />
       <AccountProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
-    </div>
+    </>
   )
 }

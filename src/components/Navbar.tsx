@@ -4,6 +4,8 @@ import Magnetic from './Magnetic'
 import { FlowButton } from './ui/flow-button'
 import { requestScene } from '../lib/sceneBus'
 import { useContent } from '../lib/contentStore'
+import { Landmark, Images } from 'lucide-react'
+import { PALACE_INDEX, COMMUNITY_INDEX, STUDIO_INDEX } from '../lib/pages'
 
 const SECTION_IDS = site.nav.map((item) => item.href.slice(1))
 
@@ -80,7 +82,7 @@ export default function Navbar() {
   useEffect(() => {
     const onScene = (event: Event) => {
       const index = (event as CustomEvent).detail.index as number
-      const id = navItemsRef.current[index]?.href?.slice(1) ?? SECTION_IDS[index]
+      const id = (event as CustomEvent).detail.id ?? navItemsRef.current[index]?.href?.slice(1) ?? SECTION_IDS[index]
       if (id) setActive(id)
       setMenuOpen(false)
     }
@@ -135,6 +137,8 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-3">
+          <button className="community-nav-entry" aria-label="图寻" title="图寻" aria-current={active === 'palace' ? 'page' : undefined} onClick={() => requestScene(PALACE_INDEX)}><Landmark size={16} /><span>图寻</span></button>
+          <button className="community-nav-entry" aria-label="府员创作室" title="府员创作室" aria-current={active === 'community' ? 'page' : undefined} onClick={() => requestScene(COMMUNITY_INDEX)}><Images size={16} /></button>
           {/* 站内搜索 */}
           <button
             type="button"
@@ -150,9 +154,9 @@ export default function Navbar() {
           {/* 账号：登录 / 注册 / 查看当前账号 */}
           <button
             type="button"
-            onClick={openGate}
+            onClick={() => account ? requestScene(STUDIO_INDEX) : openGate()}
             title={account ? `${content.ui.nav.loggedInPrefix}${account.displayName}` : content.ui.nav.loginTitle}
-            aria-label={content.ui.nav.loginAria}
+            aria-label={account ? '个人中心' : content.ui.nav.loginAria}
             className={`flex h-10 w-10 items-center justify-center rounded-md border transition-colors duration-300 ${
               account
                 ? 'border-brand-500/60 bg-brand-500/10 text-brand-400'

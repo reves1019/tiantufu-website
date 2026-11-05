@@ -1,0 +1,42 @@
+import { useCallback, useEffect, useState } from 'react'
+import { ImagePlus, Images, Pencil, Trash2 } from 'lucide-react'
+import { useContent } from '../../lib/contentStore'
+import { useCommunityAccess } from '../../lib/useCommunityAccess'
+import { communityError, communityEvent, deleteGallery, editGallery, loadGallery, submitMyQQ, uploadGallery, type GalleryImage } from '../../lib/community'
+import Lightbox from '../Lightbox'
+import Discussion from './Discussion'
+import { useDialogFocus } from '../../lib/useDialogFocus'
+
+export default function GalleryPanel({ mine = false, memberId }: { mine?: boolean; memberId?: string }) {
+  const { account, content, admin, openGate, cloudMode } = useContent(), access = useCommunityAccess()
+  const [images, setImages] = useState<GalleryImage[]>([]), [error, setError] = useState(''), [busy, setBusy] = useState(false)
+  const [file, setFile] = useState<File | null>(null), [title, setTitle] = useState(''), [description, setDescription] = useState(''), [category, setCategory] = useState('历史地图'), [topic, setTopic] = useState('zhengshi')
+  const [selected, setSelected] = useState<GalleryImage | null>(null), [editing, setEditing] = useState<GalleryImage | null>(null), [reader, setReader] = useState(false)
+  const editingDialog = useDialogFocus<HTMLFormElement>(!!editing, () => setEditing(null))
+  const photoDialog = useDialogFocus<HTMLDivElement>(!!selected && !reader, () => setSelected(null))
+  const [qqClaim, setQQClaim] = useState(''), [claimNotice, setClaimNotice] = useState('')
+  const reload = useCallback(async () => { setImages(await loadGallery(account, { ownerId: mine ? account?.id : undefined, memberId, publishedOnly: !mine })) }, [account, mine, memberId])
+  useEffect(() => { let alive = true; const load = () => { void loadGallery(account, { ownerId: mine ? account?.id : undefined, memberId, publishedOnly: !mine }).then(v => { if (alive) setImages(v) }).catch(e => { if (alive) setError(communityError(e)) }) }; load(); window.addEventListener(communityEvent, load); const t = window.setInterval(load, 30000); return () => { alive = false; window.removeEventListener(communityEvent, load); clearInterval(t) } }, [account, mine, memberId])
+  const shown = images.filter(i => mine ? i.owner_id === account?.id : i.published && (!memberId || i.memberId === memberId))
+  const run = async (fn: () => Promise<void>) => { if (busy) return; setBusy(true); setError(''); try { await fn(); await reload() } catch (e) { setError(communityError(e)) } finally { setBusy(false) } }
+  return <section className="community-gallery">
+    <div className="community-section-head"><div><span className="community-eyebrow">{mine ? 'MY COLLECTION' : 'MEMBER GALLERY'}</span><h2>{mine ? '我的图片库' : '府员新作'}</h2></div><Images size={25} /></div>
+    {mine && !account && <button onClick={openGate}>登录后管理自己的图库 ↗</button>}
+    {mine && account && !access.canEdit && <p className="community-status">{access.error || '你的账号可以评论、点赞和收藏。创作者账号可使用个人图库和展示资料编辑。'}</p>}
+    {mine && account && !access.canEdit && <form className="community-row" onSubmit={e => { e.preventDefault(); void run(async () => { await submitMyQQ(account, qqClaim); setClaimNotice('QQ 申请已提交，请等待管理员核实。'); setQQClaim('') }) }}><label>补充 / 更正 QQ 申请<input required inputMode="numeric" pattern="[1-9][0-9]{4,11}" value={qqClaim} onChange={e => setQQClaim(e.target.value)} placeholder={access.qq ? `当前申请：${access.qq}` : '填写你的 QQ 号'} /></label><button disabled={busy} className="community-primary">提交身份申请</button>{claimNotice && <p role="status">{claimNotice}</p>}</form>}
+    {mine && access.canEdit && <form className="community-upload" onSubmit={e => { e.preventDefault(); if (!file) { setError('请先选择图片'); return } const form = e.currentTarget; void run(async () => { await uploadGallery(account, file, { title, description, category, topic, published: false }); setTitle(''); setDescription(''); setFile(null); form.reset() }) }}>
+      <label className="community-drop"><ImagePlus size={30} /><strong>{file ? file.name : '选择一张新的地图'}</strong><small>JPG / PNG / WebP / GIF / AVIF · 最大 10 MB</small><input aria-label="上传个人图库图片" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label>
+      <div className="community-upload-fields"><label>作品标题<input required maxLength={120} value={title} onChange={e => setTitle(e.target.value)} /></label><label>作品分类<input list="gallery-categories" required maxLength={60} value={category} onChange={e => setCategory(e.target.value)} /><datalist id="gallery-categories">{content.worksCategories.map(c => <option key={c}>{c}</option>)}</datalist></label><label>创作主题<select value={topic} onChange={e => setTopic(e.target.value)}>{content.topics.map(t => <option value={t.id} key={t.id}>{t.name}</option>)}</select></label><label>图片说明<textarea maxLength={3000} value={description} onChange={e => setDescription(e.target.value)} /></label><div className="community-row"><small>先保存为草稿，再自行公开。</small><button className="community-primary" disabled={busy}>{busy ? '上传中…' : '保存到我的图库'}</button></div></div>
+    </form>}
+    {(error || (mine && access.error)) && <p role="alert" className="community-error">{error || access.error}</p>}
+    {!cloudMode && <p className="community-muted">本机演示 · 本页新增图片不会同步到其他设备。</p>}
+    <div className="community-gallery-grid">{shown.map(i => <article key={i.id}>
+      <button className="community-image-button" onClick={() => { setSelected(i); setReader(false) }}><img src={i.image} alt={i.title} loading="lazy" /><span>{i.published ? i.category : '私有草稿'}</span></button><div className="community-image-copy"><h3>{i.title}</h3><p>{i.author} · {i.category}</p>
+      {(mine || admin) && <div className="community-row"><button disabled={busy || !access.canEdit} onClick={() => setEditing(i)}><Pencil size={13} /> 编辑</button><button disabled={busy || !access.canEdit} onClick={() => void run(() => editGallery(account, i, { published: !i.published }))}>{i.published ? '转为私有' : '公开展示'}</button><button aria-label={`删除 ${i.title}`} disabled={busy} onClick={() => { if (window.confirm('删除这张个人图库图片？此操作不会删除原站的作品档案。')) void run(() => deleteGallery(account, i)) }}><Trash2 size={14} /></button></div>}</div>
+    </article>)}</div>
+    {!shown.length && <div className="community-empty"><Images size={34} /><p>{mine ? '你的第一张地图，从这里开始。' : '还没有公开的新图库作品。原有馆藏仍在作品集与图寻中。'}</p></div>}
+    {editing && <div className="community-modal-backdrop"><form ref={editingDialog} className="community-modal" role="dialog" aria-modal="true" aria-label="编辑图库作品" onSubmit={e => { e.preventDefault(); void run(async () => { await editGallery(account, editing, { title: editing.title, category: editing.category, description: editing.description }); setEditing(null) }) }}><h2>编辑图库作品</h2><label>标题<input required maxLength={120} value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} /></label><label>分类<input required maxLength={60} value={editing.category} onChange={e => setEditing({ ...editing, category: e.target.value })} /></label><label>说明<textarea maxLength={3000} value={editing.description} onChange={e => setEditing({ ...editing, description: e.target.value })} /></label>{error && <p role="alert">{error}</p>}<div className="community-row"><button type="button" onClick={() => setEditing(null)}>取消</button><button className="community-primary" disabled={busy}>保存修改</button></div></form></div>}
+    {selected && !reader && <div className="community-modal-backdrop"><div ref={photoDialog} className="community-modal community-photo-detail" role="dialog" aria-modal="true" aria-label={selected.title}><div className="community-row"><h2>{selected.title}</h2><button aria-label="关闭图片详情" onClick={() => setSelected(null)}>关闭 ×</button></div><button onClick={() => setReader(true)} className="community-detail-image"><img src={selected.image} alt={selected.title} /><span>打开高清阅读器 ↗</span></button><p>{selected.description}</p>{selected.published ? <Discussion workKey={`gallery:${selected.id}`} onLogin={() => { setSelected(null); openGate() }} /> : <p>私有草稿暂不开启评论与点赞。</p>}</div></div>}
+    {selected && reader && <Lightbox images={[{ src: selected.image, title: selected.title, desc: selected.description, author: selected.author, workKey: selected.published ? `gallery:${selected.id}` : undefined }]} index={0} onClose={() => setReader(false)} />}
+  </section>
+}

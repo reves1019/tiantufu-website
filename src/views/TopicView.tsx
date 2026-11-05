@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Lightbox from '../components/Lightbox'
+import PostsFeed from '../components/community/PostsFeed'
 import EditableText from '../components/admin/EditableText'
 import { useContent } from '../lib/contentStore'
 import { DIRECTORY_INDEX, MEMBER_INDEX } from '../lib/pages'
@@ -32,6 +33,7 @@ export default function TopicView() {
       <div className="collection-section-title"><EditableText as="h2" value={content.ui.topic.worksAuthors} path="ui.topic.worksAuthors" /><span className="collection-count">{maps.length} {content.ui.exhibition.countUnit}</span></div>
       <div className={`collection-map-grid ${maps.length === 1 ? 'topic-single-map' : ''}`}>{maps.map(({ work, member, index: workIndex }, i) => <article className="collection-map" key={work.id} data-exhibit-reveal><button type="button" className="collection-map-cover" aria-label={content.ui.works.readMap + ' · ' + work.title} onClick={() => setReading(i)}><img src={work.image} alt={work.title} loading="lazy" /><span>{content.ui.works.readMap} ↗</span></button><div className="collection-map-caption"><div>{workIndex >= 0 ? <EditableText as="h3" value={work.title} path={`worksArchive.${workIndex}.title`} /> : <h3>{work.title}</h3>}<p>{work.category}</p></div>{member ? <button type="button" className="collection-byline" onClick={() => { setActiveMemberId(member.id); requestScene(MEMBER_INDEX) }}><img src={member.avatar} alt="" loading="lazy" />{member.name} ↗</button> : <span>{work.author}</span>}</div></article>)}</div>
       {!maps.length && <EditableText as="p" value={content.ui.topic.empty} path="ui.topic.empty" className="exhibit-empty" />}
+      <PostsFeed key={topic.id} topic={topic.id} />
     </>}
   </div>{reading !== null && <Lightbox images={maps.map(catalogueImage)} index={reading} onClose={() => setReading(null)} onIndexChange={setReading} />}</section>
 }

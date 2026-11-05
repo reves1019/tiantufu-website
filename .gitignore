@@ -27,6 +27,8 @@ dist-ssr
 *.sw?
 
 .vercel
+.local-server/
+.secrets/
 
 # Local visual QA and generated export artifacts
 output/

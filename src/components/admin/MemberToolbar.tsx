@@ -1,25 +1,25 @@
 import { useState } from 'react'
 import { useContent } from '../../lib/contentStore'
-import { MEMBER_INDEX, WORKS_INDEX } from '../../lib/pages'
+import { STUDIO_INDEX, WORKS_INDEX } from '../../lib/pages'
 import { setActiveMemberId } from '../../lib/memberBus'
 import { requestScene } from '../../lib/sceneBus'
 import AccountProfileModal from './AccountProfileModal'
 import CredentialsModal from './CredentialsModal'
+import { useCommunityAccess } from '../../lib/useCommunityAccess'
 
 /** 成员仅能维护公开昵称、头像与个人介绍；作品、分类及站点文案由管理员负责。 */
 export default function MemberToolbar() {
   const { account, admin, logoutAccount, accountsReady, hydrated, cloudMode } = useContent()
   const [profileOpen, setProfileOpen] = useState(false)
   const [credOpen, setCredOpen] = useState(false)
+  const access = useCommunityAccess()
   const ready = accountsReady && hydrated
 
   const isMember = !!account && account.role === 'member' && account.status === 'approved' && !admin
   if (!isMember) return null
 
   const goHome = () => {
-    if (!account.memberId) return
-    setActiveMemberId(account.memberId)
-    requestScene(MEMBER_INDEX)
+    requestScene(STUDIO_INDEX)
   }
 
   const goWorks = () => {
@@ -43,12 +43,14 @@ export default function MemberToolbar() {
         <button type="button" disabled={!ready} onClick={goHome} className={buttonClass}>
           我的主页
         </button>
-        <button type="button" disabled={!ready} onClick={() => setProfileOpen(true)} className={buttonClass}>
+        <button type="button" disabled={!ready || !access.canEdit} title={access.canEdit ? '编辑自己的展示资料' : '需要创作者权限'} onClick={() => setProfileOpen(true)} className={buttonClass}>
           编辑资料
         </button>
         <button type="button" disabled={!ready} onClick={goWorks} className={buttonClass}>
           我的作品
         </button>
+        <a href="#community?tab=mine" className={buttonClass}>我的图库</a>
+        <a href="#palace" className={buttonClass}>图寻</a>
         <button type="button" onClick={() => setCredOpen(true)} className={buttonClass}>
           修改密码
         </button>

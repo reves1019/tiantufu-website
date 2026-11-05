@@ -24,6 +24,7 @@
   animation: linear-modal-rise .55s cubic-bezier(.2,.75,.24,1) both;
 }
 .linear-modal-image-wrap { min-height: 300px; background: #11100e; }
+.linear-modal-dialog.is-text-only { grid-template-columns: minmax(0, 1fr); width: min(720px, 100%); }
 .linear-modal-image-wrap img { display: block; width: 100%; height: 100%; min-height: 300px; object-fit: contain; padding: 22px; }
 .linear-modal-copy { position: relative; overflow-y: auto; padding: clamp(32px, 5vw, 64px) clamp(24px, 5vw, 58px); }
 .linear-modal-copy h2 { max-width: 14ch; color: #e9e1d2; font: 500 clamp(28px, 4vw, 52px)/1.25 var(--font-display); text-wrap: balance; }

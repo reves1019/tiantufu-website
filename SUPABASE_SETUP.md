@@ -59,3 +59,24 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_你的公钥
 4. 决定由哪位管理员首次将现有本地网站 JSON 导入 `site_content`（只选一台浏览器作为初次迁移源，避免各浏览器旧数据互相覆盖）。
 
 本地旧账号密码不能安全地自动迁移为 Supabase 密码；管理员需要用邮箱邀请/密码重置建立云端凭据。环境变量生效后，在线集成验收和生产重新部署仍需执行；当前尚无真实项目凭据，因此这里的云端链路尚未通过真实项目验证。
+
+## 7. 网站推送通知
+
+推送订阅、通知队列、失效订阅清理与派发函数已在仓库中准备好；浏览器端只会持有 VAPID 公钥。先在项目根目录生成一次本机密钥对：
+
+```powershell
+pnpm push:keys
+pnpm push:local
+pnpm push:preflight
+```
+
+这些命令把私钥和派发口令仅保存到被 Git 忽略的 `.secrets/push-server.env`，把浏览器公钥写入被 Git 忽略的 `.env.local`，不会输出密钥内容。已经有真实订阅的生产站点不要重新运行 `push:keys`，否则旧订阅会失效。
+
+生产接入由项目所有者在对应云端控制台完成：
+
+1. 在 Vercel 的 Production 环境添加 `VITE_WEB_PUSH_PUBLIC_KEY`，值来自本机 `.secrets/push-public.env`；重新部署前端。
+2. 在 Supabase Edge Function Secrets 中添加 `.secrets/push-server.env` 的四项服务器变量：`WEB_PUSH_PUBLIC_KEY`、`WEB_PUSH_PRIVATE_KEY`、`PUSH_DISPATCH_SECRET`、`WEB_PUSH_SUBJECT`。绝不把后三项放入 Vercel 的 `VITE_*` 变量或客户端代码。
+3. 确认已应用 `202610250001_community_and_palace.sql`，然后部署 `push-dispatch` 函数。函数不使用浏览器登录令牌，而是只接受 Vault 中的独立派发口令。
+4. 在 Supabase 启用 `pg_cron` 和 `pg_net`，将项目 URL 与同一派发口令分别存为 Vault 的 `project_url` 与 `tiantufu_push_dispatch_secret`，再执行 [推送定时任务模板](supabase/push_schedule.template.sql)。模板每分钟派发队列；过期订阅会自动移除。
+
+部署后，在已登录账号的「通知设置」中启用浏览器推送，再用评论、点赞或管理员公告建立一条通知验证。云端变量齐全后，可运行 `pnpm push:preflight -- --require-cloud` 做本机配置检查；它不会读取或输出云端秘密。

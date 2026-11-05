@@ -1,0 +1,56 @@
+天图府邮箱注册与个人创作室（最新规则）
+
+当前实现
+- #studio 为个人创作室：编辑昵称/头像/简介、我的帖子、草稿箱、图库。
+- 创建文字、图片（最多 6 张，每张 10 MB）或 HTTPS 链接帖；支持预览、草稿、发布、编辑、撤回草稿、删除。
+- 板块固定对应首页三个 ID：zhengshi / ban-jiakong / quan-jiakong，名称跟随现有站点内容。
+- #topic?id=板块ID 在现有作品区下方展示该板块帖子；#community?tab=posts 展示社区帖子。
+- 注册表统一为邮箱、昵称、密码，取消用户名、单独 QQ 号、申请说明及白名单提示。
+- 普通访客完成邮箱验证后自动启用，可评论、点赞，无需人工审核。
+- 数字 QQ 邮箱与有效白名单相符时自动绑定作者权限，无需人工审核；只有作者及原管理员可以发帖和上传图库。
+
+现有项目迁移
+先确认 202609290001 基础迁移已应用；再依次应用 202610250001、202610260001、202610260002。
+新迁移增加 community_posts、私有 tiantufu-posts 存储桶、帖子 RLS，以及登录激活 RPC。最新 202610260002 增加 private.verified_member_emails 和 activate_email_member；旧 RPC 仅为兼容旧前端保留。
+不要执行旧 bootstrap_admins 模板，不要重置现有 profiles 或共享内容。
+私密 QQ 名单在网站根目录以外的交付目录；管理员单独导入，不随前端发布。
+
+Supabase Auth 邮件配置（生产必需）
+1. 保留 Email provider 与既有密码登录，允许创建新邮箱用户。必须开启 Confirm email，不要以自动确认邮箱代替用户验证。
+2. 配置可正常向外部邮箱（包括 QQ 邮箱）发信的自定义 SMTP。
+3. Email Templates 的 Confirm sign up 模板应包含 {{ .Token }} 数字验证码，可同时保留 {{ .ConfirmationURL }} 确认链接。
+   当前界面接收 6–8 位数字，建议 6 位。验证码通过 verifyOtp(type:email) 校验。
+4. 设置正式 Site URL / Redirect URLs，保留管理员已有找回密码路径，设置验证码有效期及发送频率限制。
+5. 白名单作者注册邮箱须为“QQ号码@qq.com”，普通访客可使用有效邮箱。界面统一三个字段，不展示权限判断规则。
+6. 首次注册使用 signUp(email,password)，内部 username 自动生成，与邮箱/QQ 号码无关。
+   验证后调用 activate_email_member，凭服务端签名 JWT 的 OTP 声明和已确认邮箱记录建立私有邮箱所有权凭据。
+   普通成员状态自动设为 approved；数字 QQ 邮箱命中有效白名单后自动绑定作者。客户端 metadata 不决定权限。
+   再次密码登录可以复用数据库中的同一邮箱验证凭据。单纯开启自动确认、伪填 QQ metadata 不会取得权限。
+   既有管理员角色和历史账号保留；拒绝/停用不会自动重启；绑定冲突仅保留普通成员权限，不抢占他人的 QQ。
+7. 真实云端验收：首次邮箱验证、错误/过期验证码、重发、再次密码登录、刷新、跨设备、作者自动开通、普通访客只能交流。
+
+注意：前端不能存 SMTP 密码、数据库密码或 service_role。仅沿用公开 Supabase URL 和 publishable key。
+必须将迁移、名单、SMTP 和最新前端同时准备好，才具备对外服务条件。本机模式仅创建本浏览器的演示账号，不发送邮件，也不根据未验证的 QQ 邮箱自动授予作者权限。
+
+数据权限与存储
+- 匿名只能读取已发布帖子，作者可读自己的草稿，管理员可审核；更新 owner_id/id/时间字段不对客户端授权。
+- 图片路径为 owner UUID/post UUID/random.ext，只允许该作者上传；不支持 SVG。原始比例展示。
+- 删除记录后所有者仍可清理自己文件夹中的图片，避免失败上传遗留文件无法删除。
+- 图片使用最长 1 小时的签名 URL；撤回后不能新签发给游客，但已签发 URL 在有效期内可能继续可用。
+- 帖子中正文以普通文本呈现，链接仅 HTTPS，评论沿用现有频率限制和注册要求。
+- 本地模式数据保存在浏览器 IndexedDB，不等同于云端安全认证或跨设备同步。
+
+验证命令
+pnpm build / pnpm test / pnpm lint
+pnpm test:author-posts-db （需要 TTF_PGLITE_PACKAGE_JSON 指向安装的 @electric-sql/pglite/package.json）
+pnpm test:author-studio-browser （需要 TTF_PLAYWRIGHT_PACKAGE_JSON、TTF_BROWSER_PATH；本机预览默认为 5173）
+pnpm test:community-browser （回归现有图库与宫殿功能）
+pnpm test:email-registration-db （新普通成员自动启用、QQ 作者识别、邮箱所有权及权限测试）
+pnpm test:email-registration-browser （本机 + 模拟云端 SDK 流程；模拟云端 Vite 必须使用 registration-test.supabase.co，默认端口 5176）
+
+参考：
+https://supabase.com/docs/guides/auth/auth-email-passwordless
+https://supabase.com/docs/guides/auth/auth-smtp
+https://support.reddithelp.com/hc/en-us/articles/360060422572-How-do-I-post-and-comment-on-Reddit
+
+当前验证范围：本机浏览器及隔离 PostgreSQL；真实 Supabase 邮件投递、云数据写入、跨设备和 Vercel 生产发布尚未验证。

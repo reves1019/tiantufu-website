@@ -21,6 +21,8 @@ export interface AccountRecord {
   username: string
   /** Supabase 邮箱身份；离线本地账号不需要邮箱字段 */
   email?: string
+  /** Private registration claim; never grants privileges without admin verification. */
+  qq?: string
   displayName: string
   role: AccountRole
   status: AccountStatus
@@ -63,7 +65,7 @@ export const accountPresets: AccountPreset[] = [
     displayName: '笙茗Reves',
     memberId: 'shengming-reves',
     topic: 'zhengshi',
-    defaultPassword: 'ttf-2026-reves',
+    defaultPassword: 'LOCAL-DEMO-ONLY-1',
   },
   {
     id: 'admin-shengxiong',
@@ -71,7 +73,7 @@ export const accountPresets: AccountPreset[] = [
     displayName: '圣雄肝帝',
     memberId: 'shengxiong-gandi',
     topic: 'ban-jiakong',
-    defaultPassword: 'ttf-2026-shengxiong',
+    defaultPassword: 'LOCAL-DEMO-ONLY-2',
   },
   {
     id: 'admin-baicai',
@@ -79,7 +81,7 @@ export const accountPresets: AccountPreset[] = [
     displayName: '子虚的白菜',
     memberId: 'zixu-debaicai',
     topic: 'quan-jiakong',
-    defaultPassword: 'ttf-2026-baicai',
+    defaultPassword: 'LOCAL-DEMO-ONLY-3',
   },
 ]
 
@@ -270,7 +272,7 @@ export function findAccountByUsername(accounts: AccountRecord[], username: strin
   const u = username.trim().toLowerCase()
   return accounts.find(
     (a) =>
-      a.username.toLowerCase() === u ||
+      a.username.toLowerCase() === u || a.email?.trim().toLowerCase() === u ||
       (Array.isArray(a.loginAliases) && a.loginAliases.some((alias) => alias.username.toLowerCase() === u)),
   )
 }

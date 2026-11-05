@@ -1,0 +1,437 @@
+/* 六种交互的视觉层。状态由 data-* / aria-* 表达；业务布局留在旧样式适配层。 */
+.atlas-controls button {
+  border:1px solid #b89c6455;
+  background:#1b201b;
+  padding:10px 16px;
+  border-radius:6px;
+  color:inherit;
+  cursor:pointer;
+}
+
+.atlas-tabs :is(button,[tabindex]):focus-visible,
+.atlas-art:focus-visible,
+.atlas-controls button:focus-visible,
+.atlas-reactions button:focus-visible {
+  outline:2px solid #f2cf86;
+  outline-offset:4px;
+}
+
+.atlas-art {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border:1px solid #b89c6455;
+  border-radius:16px;
+  background:#111b18;
+  color:#fff4df;
+  --atlas-tint:#8a5739;
+}
+
+.atlas-fabric {
+  position:absolute;
+  z-index:-1;
+  inset:-40%;
+  background:repeating-radial-gradient(ellipse at 22% 40%,transparent 0 20px,#e7d8ab24 23px 24px,transparent 27px 47px),conic-gradient(from 40deg at 50% 45%,#111b18,var(--atlas-tint),#14211d,#d1b67c66,var(--atlas-tint),#111b18);
+  filter:contrast(1.2);
+  animation:atlas-fabric-drift 16s ease-in-out infinite alternate;
+}
+
+.atlas-lab-image {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  position:absolute;
+  inset:0;
+  padding:28px 24px 140px;
+  filter:drop-shadow(0 10px 20px #0009);
+}
+
+.atlas-card-copy {
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:26px;
+  background:linear-gradient(transparent,#0b120fe8 28%);
+}
+
+.atlas-card-copy small {
+  font:11px monospace;
+  letter-spacing:.12em;
+  color:#ded0ac;
+}
+
+.atlas-card-copy h3 {
+  font-size:clamp(21px,3vw,32px);
+  font-weight:400;
+  line-height:1.35;
+  margin:8px 0;
+}
+
+.atlas-card-copy p {
+  font-size:13px;
+  line-height:1.6;
+  color:#cdcbbb;
+  margin:0;
+}
+
+.atlas-tabs [role=tablist] {
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:6px 2px 20px;
+}
+
+.atlas-tabs [role=tab] {
+  border:1px solid #ad976c44;
+  background:transparent;
+  color:#b8b5a5;
+  white-space:nowrap;
+  padding:11px 18px;
+  border-radius:24px;
+  cursor:pointer;
+}
+
+.atlas-tabs [aria-selected=true] {
+  background:#b54230;
+  color:#fff5e1;
+  border-color:#b54230;
+}
+
+.atlas-tab-panel {
+  height:440px;
+}
+
+.atlas-poster {
+  height:490px;
+  max-width:360px;
+  margin:auto;
+  transform:perspective(1000px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));
+  transition:transform .3s ease;
+  box-shadow:0 28px 50px #0005;
+}
+
+.atlas-poster-eyebrow {
+  position:absolute;
+  top:24px;
+  left:26px;
+  font:12px monospace;
+  letter-spacing:.3em;
+}
+
+.atlas-poster .atlas-lab-image {
+  padding-top:65px;
+  padding-bottom:180px;
+}
+
+.atlas-poster-open {
+  position:absolute;
+  bottom:15px;
+  right:20px;
+  background:#e6d4a8;
+  color:#19221d;
+  border:0;
+  padding:8px 12px;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+.atlas-poster:has(.atlas-poster-open) .atlas-card-copy {
+  padding-bottom:62px;
+}
+
+.atlas-strip {
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding:6px 4px 18px;
+}
+
+.atlas-strip-card {
+  height:390px;
+  flex:1 1 0;
+  min-width:85px;
+  text-align:left;
+  transition:flex .6s cubic-bezier(.2,.8,.2,1);
+  cursor:pointer;
+}
+
+.atlas-strip-card[data-expanded=true] {
+  flex:4 1 0;
+}
+
+.atlas-strip-card:not([data-expanded=true]) .atlas-card-copy {
+  writing-mode:vertical-rl;
+  padding:20px;
+  top:0;
+  display:flex;
+  justify-content:flex-end;
+}
+
+.atlas-strip-card:not([data-expanded=true]) :is(.atlas-card-copy p,.atlas-card-copy small) {
+  display:none;
+}
+
+.atlas-strip-card:not([data-expanded=true]) .atlas-card-copy h3 {
+  font-size:19px;
+}
+
+.atlas-strip-card:not([data-expanded=true]) .atlas-lab-image {
+  opacity:.2;
+  padding:8px;
+}
+
+.atlas-strip-card .atlas-card-copy p {
+  max-width:300px;
+}
+
+.atlas-scratch {
+  max-width:360px;
+  margin:auto;
+}
+
+.atlas-scratch-surface {
+  aspect-ratio:3/4;
+}
+
+.atlas-scratch canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  touch-action:none;
+  cursor:crosshair;
+  transition:opacity .6s;
+}
+
+.atlas-scratch [data-revealed=true] canvas {
+  opacity:0;
+  pointer-events:none;
+}
+
+.atlas-controls {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  margin-top:20px;
+}
+
+.atlas-controls span {
+  font-size:13px;
+  text-align:center;
+}
+
+.atlas-controls button:disabled {
+  opacity:.4;
+  cursor:default;
+}
+
+.atlas-scratch>p,
+.atlas-reactions>p {
+  color:#b6b29f;
+  font-size:13px;
+  text-align:center;
+  min-height:24px;
+}
+
+.atlas-reactions {
+  padding:24px 0;
+}
+
+.atlas-reactions [role=group] {
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:14px;
+}
+
+.atlas-reactions button {
+  display:flex;
+  align-items:center;
+  flex-direction:column;
+  gap:10px;
+  background:transparent;
+  border:0;
+  color:#d8d0bf;
+  cursor:pointer;
+  min-width:56px;
+}
+
+.atlas-reactions button span {
+  display:grid;
+  place-items:center;
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  background:var(--atlas-tint);
+  font-size:26px;
+  transition:transform .25s,box-shadow .25s;
+}
+
+.atlas-reactions button small {
+  font-size:12px;
+}
+
+.atlas-reactions button[aria-pressed=true] span {
+  transform:translateY(-8px) scale(1.15);
+  box-shadow:0 0 0 3px #e4c68d;
+}
+
+.atlas-reactions button:hover span {
+  transform:translateY(-6px);
+}
+
+.atlas-flow-track {
+  display:flex;
+  gap:10px;
+  height:440px;
+  touch-action:pan-y;
+}
+
+.atlas-flow-card {
+  flex:1;
+  min-width:0;
+  cursor:pointer;
+  text-align:left;
+  transition:flex .6s ease,opacity .4s;
+  opacity:.55;
+}
+
+.atlas-flow-card[data-active=true] {
+  flex:6;
+  opacity:1;
+}
+
+.atlas-flow-card:not([data-active=true]) .atlas-card-copy {
+  padding:8px;
+  writing-mode:vertical-rl;
+}
+
+.atlas-flow-card:not([data-active=true]) .atlas-card-copy h3 {
+  font-size:16px;
+}
+
+.atlas-flow-card:not([data-active=true]) :is(.atlas-card-copy small,.atlas-card-copy p) {
+  display:none;
+}
+
+.atlas-flow-card:not([data-active=true]) .atlas-lab-image {
+  padding:4px;
+  opacity:.3;
+}
+
+@keyframes atlas-fabric-drift {
+  from {
+    transform:rotate(-8deg) scale(1);
+  }
+
+  to {
+    transform:rotate(18deg) scale(1.15);
+  }
+
+}
+
+.atlas-reactions button,
+.atlas-controls button,
+.atlas-tabs button {
+  touch-action:manipulation;
+}
+
+.atlas-tab-panel--content {
+  height:auto;
+  min-height:160px;
+}
+
+.atlas-tab-panel--content .atlas-fabric {
+  opacity:.22;
+}
+
+.atlas-panel-reading {
+  padding:24px;
+  overflow-wrap:anywhere;
+}
+
+.atlas-panel-reading :is(input,textarea) {
+  max-width:100%;
+  min-width:0;
+}
+
+.atlas-reactions button>span,
+.atlas-reactions button>small {
+  pointer-events:none;
+}
+
+@media(hover:none) {
+  .atlas-reactions button:hover span {
+    transform:none;
+  }
+
+  .atlas-reactions button[aria-pressed=true] span {
+    transform:translateY(-8px) scale(1.15);
+  }
+
+}
+
+@media(max-width:700px) {
+  .atlas-tab-panel {
+    height:400px;
+  }
+
+  .atlas-strip-card {
+    flex:0 0 95px;
+  }
+
+  .atlas-strip-card[data-expanded=true] {
+    flex:0 0 255px;
+  }
+
+  .atlas-flow-track {
+    height:370px;
+    gap:5px;
+  }
+
+  .atlas-flow-card[data-active=true] {
+    flex:14;
+  }
+
+  .atlas-flow-card:not([data-active=true]) .atlas-card-copy {
+    display:none;
+  }
+
+  .atlas-card-copy {
+    padding:18px;
+  }
+
+  .atlas-lab-image {
+    padding:24px 10px 150px;
+  }
+
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .atlas-fabric {
+    animation:none;
+  }
+
+  .atlas-art,
+  .atlas-scratch canvas,
+  .atlas-reactions button span {
+    transition:none!important;
+    transform:none!important;
+  }
+
+}
+
+.atlas-tabs .atlas-tab-panel--content {
+  height:auto;
+}
+
+html[data-motion=reduced] .atlas-fabric {
+  animation:none;
+}
+
+html[data-motion=reduced] :is(.atlas-art,.atlas-scratch canvas,.atlas-reactions button span) {
+  transition:none!important;
+  transform:none!important;
+}

@@ -1,0 +1,96 @@
+天图府 · 云端社区与思维宫殿
+更新：2026-10-25
+
+当前状态
+照片架更新：思维宫殿已嵌入主页标题区下方。平面照片架按制图类型分组，以直线连接各展区和照片；时间带按明确年代排序，未标注年代置于末尾。同一批照片在同一画布中移动变换排列，不切换场景。照片缩小并采用正负 8–20 度倾斜，点击照片会放大数倍并转正，退出聚焦后恢复倾斜；点击展区会以该展区为中心重排照片节点；滚轮以鼠标位置为中心缩放；手机双指以两指中心缩放并平移，单指拖动。双击画布展区或“我的展室”列表中的展室，可复位缩放、偏移和聚焦。“返回全景”按钮继续可用。点击个人收藏室会将它设为中心节点，按“收藏室 → 制图类型 → 室内照片”重新连线排列；空收藏室显示空中心，其他照片收起。可用“返回收藏室 / 返回全景”逐级退出。照片聚焦后点击“收藏与摘记”，可收藏、摘取和写摘记。首页与 #palace 工作台使用同一套个人收藏数据，原有主页内容继续保留。开启系统“减少动态”时省略过渡动画。
+本机可体验的新页面：
+  http://127.0.0.1:5173/#palace            思维宫殿
+  http://127.0.0.1:5173/#community         府员创作室
+  http://127.0.0.1:5173/#community?tab=mine 我的图库
+管理员登录后可打开：
+  http://127.0.0.1:5173/#community?tab=members
+
+已实现本机 demo 和云端所需的前端、数据库迁移、浏览器通知接收脚本与发送函数。
+本轮尚未连接或迁移现有 Supabase，尚未向 tiantufu.com 发布，也未发送真实通知。
+目前界面显示“本机体验”，因此跨设备注册、审核、图库和收藏仍需完成下面的云端接入。
+不能把本机或隔离数据库测试通过，理解为生产云端已经可用。
+
+一、注册与权限
+1. 用户提交用户名、昵称、QQ、密码；云端模式额外需要邮箱，密码至少 8 位。
+2. 申请先进入待审核。管理员在原“账号管理”中审核通过。
+3. 普通已审核用户可登录、评论、点赞、创建私人展室、收藏、摘记和选择推荐兴趣。
+4. 管理员在“QQ 白名单”中添加真实府员号码，并通过 QQ 等现有渠道核实申请人的身份。
+5. QQ 命中名单、账号已审核且身份确认后，开放自己的展示资料和个人图库上传/编辑。
+6. 填写别人 QQ 不会自动获得权限；同一个 QQ 只能绑定一个账号。QQ 不进入公开成员资料。
+7. “停用权限”即时阻止新的云端编辑和上传；“解除绑定并停用”可用于账号绑定纠正，不删除原账号和图片。
+8. 旧账号可在“我的图库”补充 QQ 申请。已绑定号码不能由用户自行换成另一个号。
+
+二、图库、评论与点赞
+个人图片先保存为私有草稿，再由本人点击“公开展示”。支持编辑标题、说明和分类、转为私有及删除。
+只允许上传 10 MB 以内的 JPG、PNG、WebP、GIF、AVIF。新图库使用私有 Storage 桶与受限临时访问链接。
+公开图库会出现在创作室和成员主页，也会进入思维宫殿的全站展柜。
+原有地图的高清阅读器下方新增评论与点赞。点赞以账号+作品为唯一记录，不能重复刷赞。
+评论最多 1000 字；数据库限制每位用户每分钟最多 5 条；本人或管理员可以删除评论。
+原有源码图片、作者署名、高清阅读器和原图库没有被迁移或覆盖。
+
+三、思维宫殿
+把个人分类表达为“展室”，最多可在当前可视化中建立 8 间。可以命名、标色、整理或删除。
+在展柜按标题、作者、图类搜索；点击地图或拖到展室收藏。
+可以框选局部并加摘记，也可以保存整图。摘记只保存坐标和文字，不会裁切或修改原图。
+“我的摘记”显示当前展室的收藏；删除展室会删除其中个人摘记，但不影响网站原图。
+“为你发现”根据主动关注的图类、已有收藏的分类进行推荐，并展示具体原因；不冒充 AI 图像识别。
+个人展室、摘记和关注偏好按账号隔离。访客可在本机试用，访客收藏不会自动合并到登录账号。
+参考链接 https://whenindoubt.online/demo/ 本次通过网页工具、本机浏览器和 HTTP 请求均未成功读取。
+当前 demo 依据“空间展室、个性分类、摘取”的需求独立实现，不声称复刻了参考站。
+
+四、连接现有 Supabase（推荐通过已授权的 Supabase 集成继续完成）
+1. 安装并连接 Supabase 集成到现有天图府项目，或在项目本机 .env.local 填写：
+   VITE_SUPABASE_URL=现有项目的 HTTPS URL
+   VITE_SUPABASE_PUBLISHABLE_KEY=现有项目的前端公开 key
+   旧项目也支持 VITE_SUPABASE_ANON_KEY。
+   这里绝不能填写 service_role、sb_secret、数据库密码或推送私钥。
+2. 对现有项目先运行 supabase/preflight_community.sql，只读检查结构、现有管理员与内容。
+   备份生产内容和数据库。新功能不创建管理员、不调整现有四位管理员角色。
+3. 只对已有后端应用新增迁移：
+   supabase/migrations/202610250001_community_and_palace.sql
+   它以事务执行，前提是原后端 profiles/member_applications/site_content 已存在。
+   不要为接入这个功能重跑旧 bootstrap_admins.template.sql，也不要整段重建原生产后端。
+4. 在 Supabase Auth 的 URL 配置中设置生产 Site URL，并允许实际本机和生产登录回跳地址。
+   建议打开邮箱验证。前端保留验证邮件和密码恢复的认证参数供 Supabase 消费。
+5. 配置完成后重启/刷新本机 Vite；生产前端环境变量需要在原托管平台设置并重新构建。
+6. 在管理员界面录入真实 QQ 白名单；当前没有虚构任何真实府员名单。
+7. 用两个独立设备/浏览器完成：A 注册 → B 管理员收到申请 → 审核与 QQ 核实 → A 上传 → B 可见。
+   另外核实未审核账号不能互动、非白名单账号不能上传、私有草稿和个人摘记不能被其他用户读取。
+
+五、真实浏览器推送
+站内推荐与浏览器推送是两条功能链路。只有前端订阅界面并不会自动发送系统通知。
+本次准备了完整发送代码，但需要在现有项目中部署和启用：
+1. 在项目目录运行 node scripts/generate-push-keys.mjs。
+   它创建被 Git 忽略的 .secrets/push-server.env 与 .secrets/push-public.env，不把密钥输出到日志。
+   再次运行会拒绝覆盖旧密钥，避免使现有订阅失效。
+2. 将 push-public.env 中的 VITE_WEB_PUSH_PUBLIC_KEY 加到前端本机与托管环境并重新构建。
+3. 将 push-server.env 中 WEB_PUSH_PUBLIC_KEY、WEB_PUSH_PRIVATE_KEY、WEB_PUSH_SUBJECT、PUSH_DISPATCH_SECRET
+   只放入 Supabase Edge Function 的服务端 secrets。不要复制到任何 VITE_* 变量。
+4. 部署 supabase/functions/push-dispatch/index.ts，并使用随附 config.toml 的函数设置。
+   函数关闭平台 JWT 校验是为了使用自己的高熵调用密钥；代码会先严格校验 x-ttf-dispatch-secret，未通过不访问数据库。
+5. 在 Supabase Vault 创建 project_url 和 tiantufu_push_dispatch_secret，后者与服务端调用密钥相同。
+   启用 pg_cron、pg_net 后运行 supabase/push_schedule.template.sql，每分钟处理待发通知。
+6. 会员在“为你发现”或创作室点击“开启浏览器通知”，明确同意浏览器权限后才建立订阅。
+   有关注分类时按分类推送；没有关注分类时接收全部新公开作品。每台设备单独开启或关闭。
+7. 新公开的个人图库作品，以及原作品档案中新增/由未公开改为公开的作品，会进入发送队列。
+   队列按作品去重；已有送达记录的订阅不会重复发送。浏览器端以同一消息标签合并重试通知。
+8. 本机缺少云端/VAPID 配置时按钮会说明尚未启用，不会假装已订阅或发送。
+   公网部署需 HTTPS；浏览器与系统需支持 Web Push，部分手机环境需要将网页添加到主屏幕。
+
+技术依据（官方文档）
+https://supabase.com/docs/guides/functions/schedule-functions
+https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/push
+https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers
+
+六、验证入口与范围
+pnpm build / pnpm test / pnpm lint
+pnpm test:community：摘取边界、推荐排序、推送鉴权/接收与发送逻辑（推送服务为模拟）。
+pnpm test:community-browser：完整本机社区和宫殿操作，使用隔离浏览器。
+pnpm test:community-db：在 PGlite 中实际执行迁移与跨角色 SQL；需要指定 TTF_PGLITE_PACKAGE_JSON。
+浏览器脚本沿用 TTF_PLAYWRIGHT_PACKAGE_JSON、TTF_BROWSER_PATH，默认测试地址为本机 5173。
+PGlite 验证了 PostgreSQL 权限逻辑，Auth/Storage 用最小替身表；未代替真实 Supabase 与浏览器通知的联网验收。
