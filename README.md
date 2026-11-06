@@ -1,5 +1,7 @@
 # 天图府开发入口
 
+- [素材接收与处理规范](CONTRIBUTING_MATERIALS.md)：成员提交图片、地图、文案和数据的入口、模板及审核流程。
+
 - [动效制作端](docs/design-studio/README.md)：管理员工具栏入口，14 个参考后重写的效果、参数预览、转场应用与完整源码包导出。
 
 - [交互代码学习库](learning/interaction-atlas/README.md)：六种交互的中文课程、注释源码、可运行练习和复用说明。

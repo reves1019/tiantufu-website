@@ -4,7 +4,7 @@
 
 ## 快速规则
 
-1. 把图片放进 images/，并放一个同名 JSON：photo.webp + photo.webp.json。
+1. 把图片放进 images/，并在同一目录添加 JSON。JSON 文件名使用“图片完整文件名 + .json”，保留图片扩展名，例如 photo.webp + photo.webp.json（不是 photo.json）。
 2. 把文案放进 copy/，文件使用 YAML front matter；可复制 ../templates/copy.md。
 3. 结构化数据放进 data/，说明字段映射和来源。
 4. 新提交默认 status: draft；只有全部必填字段和版权信息确认后才能改成 status: ready。
