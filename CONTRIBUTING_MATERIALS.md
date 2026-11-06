@@ -8,7 +8,7 @@
 
 | 用途 | 正式目录 | 说明 |
 | --- | --- | --- |
-| 阅读器地图素材 | public/collection/ | 与 public/collection/SOURCES.md 一起维护；现有图片有同名 JSON 元数据。 |
+| 阅读器地图素材 | public/collection/ | 与 public/collection/SOURCES.md 一起维护；现有图片使用“图片完整文件名 + .json”元数据。 |
 | 开场 Atlas 墙 | public/atlas-wall/ | 装饰性地图板；来源和授权写入该目录的 SOURCES.md。 |
 | 地图页面素材 | public/maps/ | 地图页面使用的素材。 |
 | 品牌媒体 | public/brand/ | 品牌介绍和品牌媒体。 |
@@ -19,7 +19,7 @@
 ## 收件箱结构
 
     content-inbox/
-    ├── images/       # 待审核图片；每张图片必须有同名 JSON
+    ├── images/       # 待审核图片；每张图片必须有配套 JSON
     ├── copy/         # 待审核文案；每份 Markdown 使用 YAML front matter
     ├── data/         # 经过审核的结构化数据草稿
     ├── processed/    # 已处理的原始提交包或处理记录
@@ -37,19 +37,21 @@
 
 ### 图片包
 
-图片文件与 JSON 必须同名（扩展名除外），例如：
+图片和 JSON 必须放在同一目录。JSON 文件名使用“图片完整文件名 + .json”：保留图片扩展名，再追加 .json，不要替换图片扩展名。例如：
 
     content-inbox/images/europe-1894.jpg
     content-inbox/images/europe-1894.jpg.json
+
+同样，photo.webp 的元数据文件名应为 photo.webp.json，不是 photo.json；photo.jpg 则配 photo.jpg.json，避免不同格式的图片共用一份元数据。
 
 JSON 必须包含 status、target_page、target_section、action、alt、credit、license、source。action 使用 add、replace 或 update 之一；source 应该是可核查的路径或 URL。地图还要在 license 和 source 中写清版权状态和来源页面。
 
 处理图片时：
 
-1. 扫描新增文件和同名 JSON，拒绝孤立图片或孤立 JSON。
+1. 扫描新增图片及其“图片完整文件名 + .json”元数据，拒绝孤立图片或孤立 JSON。
 2. 核对图片的真实用途和代码引用，确认目标正式目录。
 3. 将图片复制或移动到正式目录，并按仓库现有命名和压缩方式处理。
-4. 若目标是 public/collection/，同步更新 public/collection/SOURCES.md 和同名元数据。
+4. 若目标是 public/collection/，同步更新 public/collection/SOURCES.md 和对应的“图片完整文件名 + .json”元数据。
 5. 若目标是 public/atlas-wall/，同步更新 public/atlas-wall/SOURCES.md。
 6. 将原始收件包或处理记录移入 processed/；失败或授权不明则移入 rejected/。
 
@@ -85,7 +87,7 @@ JSON 必须包含 status、target_page、target_section、action、alt、credit�
 ## 处理者检查清单
 
 - [ ] 已扫描 PR 新增文件，确认没有隐藏文件、构建产物、依赖目录或敏感信息。
-- [ ] 每张图片都有同名 JSON；每份文案都有 YAML front matter。
+- [ ] 每张图片都在同一目录有“图片完整文件名 + .json”元数据；每份文案都有 YAML front matter。
 - [ ] 所有必填字段均已填写，status 确认是 ready。
 - [ ] 已识别真实正式资源目录，并确认没有重复建立资源系统。
 - [ ] 地图来源、版权和许可已核查；未确认的地图保持非 ready。
@@ -138,7 +140,7 @@ JSON 必须包含 status、target_page、target_section、action、alt、credit�
     你正在处理这个网站仓库的素材接收 PR。请先扫描 PR 新增文件和 diff，识别真实的正式资源目录及代码引用；不要新建第二套资源系统。重点检查 public/collection、public/collection/SOURCES.md、public/atlas-wall、public/maps、public/brand 和 src/assets/members。
 
     逐项检查：
-    1. 图片是否有同名 JSON；文案是否有 YAML front matter。
+    1. 图片是否在同一目录有“图片完整文件名 + .json”元数据（如 photo.webp.json）；文案是否有 YAML front matter。
     2. 元数据是否包含 status、target_page、target_section、action、alt、credit、license、source。
     3. 只有 status=ready 才能处理。地图的版权、许可或来源未确认时，禁止将其视为 ready。
     4. 拒绝密码、Token、API Key、.env、私钥、Cookie、会话内容和其他敏感信息。
